@@ -60,25 +60,32 @@ def evaluate_eligibility(
         flags_eligible.append("Geographic match: Open to participants from India / Global.")
 
     # 2. Student Status Evaluation
-    # RULE: Treat NMIMS online/distance MBA enrolment as valid student status for initial screening.
-    nmims_student_status = user_profile["education"]["degree_current"]["treat_as_valid_student"]
+    degree_info = user_profile.get("education", {}).get("degree_current", {})
+    has_student_email = degree_info.get("has_student_email", False)
+    nmims_student_status = degree_info.get("treat_as_valid_student", False)
     
     requires_student = any(k in terms_text for k in [
         "must be a student", "currently enrolled student", "enrolled in a university",
         "student developer", "student id required", "college students only", "university students"
     ]) or category in ["Student Benefits"]
 
+    requires_edu_email = any(k in terms_text for k in [
+        ".edu email required", "school-issued email required", "must have a .edu email address"
+    ])
+
     requires_undergrad_only = any(k in terms_text for k in [
         "undergraduate students only", "undergrads only", "high school only", "k-12 students"
     ])
 
     if requires_undergrad_only:
-        flags_ineligible.append("Restricted to undergraduate or high school students only; Arif is currently an MBA student / graduate.")
+        flags_ineligible.append("Restricted to undergraduate or high school students only; Arif is an experienced professional.")
+    elif requires_edu_email and not has_student_email:
+        flags_ineligible.append("Requires university .edu/academic email; Arif does not have a student email.")
     elif requires_student:
         if nmims_student_status:
-            flags_eligible.append("Student status: Enrolled in NMIMS Mumbai MBA (Distance/Online) qualifies for student screening.")
+            flags_eligible.append("Student status: Enrolled in NMIMS Mumbai MBA qualifies for general student screening.")
         else:
-            flags_unclear.append("Student status required; distance MBA qualification requires manual verification.")
+            flags_unclear.append("Student status required; no verified student email on file.")
 
     # 3. Working Professional / Experience Evaluation
     user_exp = user_profile["professional"]["years_of_experience"]

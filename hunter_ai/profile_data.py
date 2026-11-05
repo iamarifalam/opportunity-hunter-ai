@@ -10,10 +10,10 @@ USER_PROFILE: Dict[str, Any] = {
     "personal": {
         "full_name": "Arif Alam",
         "email": "iamarifalam@gmail.com",
-        "phone": "+91-9876543210",
+        "phone": "+91-8954739708",
         "location": {
-            "city": "Mumbai",
-            "state": "Maharashtra",
+            "city": "Agra",
+            "state": "Uttar Pradesh",
             "country": "India",
             "country_code": "IN",
             "timezone": "Asia/Kolkata",
@@ -47,8 +47,9 @@ USER_PROFILE: Dict[str, Any] = {
             "location": "Mumbai, India",
             "duration": "2025–2027",
             "mode": "Online / Distance Programme",
-            # RULE: Must be treated as valid student status for initial screening!
+            # Online/Distance programme - Valid student status for degree-granting screening, no .edu email
             "treat_as_valid_student": True,
+            "has_student_email": False,
             "status": "Currently Enrolled",
         },
         "degree_undergrad": {
@@ -133,14 +134,19 @@ USER_PROFILE: Dict[str, Any] = {
     # Verified physical shipping profile for Swag Hunter Engine
     "shipping": {
         "recipient_name": "Arif Alam",
-        "phone": "+91-9876543210",
+        "phone": "+91-8954739708",
+        "street": "E-4/43, Shaheed Nagar",
+        "city": "Agra",
+        "state": "Uttar Pradesh",
+        "postal_code": "282001",
         "country": "India",
         "country_code": "IN",
-        "city": "Mumbai",
-        "state": "Maharashtra",
-        "postal_code": "400001",
-        "preferred_tshirt_size": "L",
-        "delivery_instructions": "Residential address, leave with security if unavailable",
+        "preferred_tshirt_size": "M",
+        "waist_size": 32,
+        "height": "5'10\"",
+        "swag_preference": "PROPER_SWAG_ONLY",  # Strict filter: Hoodies, T-Shirts, Hardware, Tech Kits. Deprioritize sticker-only items.
+        "delivery_instructions": "Residential address",
+        "privacy_rule": "Avoid providing phone number or address where optional on forms",
     },
     # Pre-registered events reported by user (awaiting authenticated email confirmation)
     "pre_registered_events": [

@@ -260,7 +260,7 @@ class SwagHunterAgent(BaseAgent):
         self,
         db: AsyncSession,
         swag_id: int,
-        size: str = "L",
+        size: str = "M",
         notes: str = "",
     ) -> SwagClaim:
         """
@@ -279,13 +279,13 @@ class SwagHunterAgent(BaseAgent):
         )
         existing_claim = claim_result.scalars().first()
 
-        shipping = USER_PROFILE.get("shipping_address", {})
-        full_address = (
-            f"{shipping.get('street', 'Bandra Kurla Complex')}, "
-            f"{shipping.get('city', 'Mumbai')}, {shipping.get('state', 'Maharashtra')} - "
-            f"{shipping.get('postal_code', '400051')}, {shipping.get('country', 'India')}. "
-            f"Phone: {shipping.get('phone', '+91 98765 43210')}"
-        )
+        shipping = USER_PROFILE.get("shipping", {})
+        street = shipping.get("street", "E-4/43, Shaheed Nagar")
+        city = shipping.get("city", "Agra")
+        state = shipping.get("state", "Uttar Pradesh")
+        pincode = shipping.get("postal_code", "282001")
+        country = shipping.get("country", "India")
+        full_address = f"{street}, {city}, {state} - {pincode}, {country}"
 
         if existing_claim:
             existing_claim.selected_size = size or existing_claim.selected_size
