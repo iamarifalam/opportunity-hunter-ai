@@ -26,6 +26,7 @@ from hunter_ai.agents.deadline_agent import DeadlineAgent
 from hunter_ai.agents.reporting_agent import ReportingAgent
 from hunter_ai.agents.email_agent import EmailAgent
 from hunter_ai.agents.security_agent import SecurityCostAgent
+from hunter_ai.engines.cloud_form_submitter import CloudFormSubmitterEngine
 
 from hunter_ai.models import (
     WorkerJob,
@@ -65,6 +66,7 @@ class OpportunityHunterOrchestrator(BaseAgent):
         self.reporting_agent = ReportingAgent()
         self.email_agent = EmailAgent()
         self.security_agent = SecurityCostAgent()
+        self.cloud_submitter = CloudFormSubmitterEngine()
 
         # Zero-yield learning tracker
         self.zero_yield_registry: Dict[str, int] = {}
@@ -328,12 +330,15 @@ class OpportunityHunterOrchestrator(BaseAgent):
         # 9. Deadline Radar
         deadlines = await self.deadline_agent.check_deadlines(db)
 
-        # 10. Generate Daily Report
+        # 10. Automated Cloud Form Submissions (Zero Local Machine Dependency)
+        submissions_result = await self.cloud_submitter.submit_all_eligible_swag_forms(db)
+
+        # 11. Generate Daily Report
         daily_report = await self.reporting_agent.generate_daily_report(db)
 
         duration = round(time.time() - start_time, 2)
 
-        # 11. Record Telemetry in AutomationRun
+        # 12. Record Telemetry in AutomationRun
         run_record = AutomationRun(
             agent_name="MasterOrchestrator",
             run_type="AUTONOMOUS_CYCLE",
@@ -363,6 +368,8 @@ class OpportunityHunterOrchestrator(BaseAgent):
             "discovered_count": len(discovered),
             "verified_count": len(verified),
             "eligible_count": len([e for e in eligible if e.eligibility_status in ["Eligible", "Likely eligible"]]),
+            "forms_submitted": submissions_result.get("total_submitted", 0),
+            "submission_details": submissions_result.get("details", []),
             "deadlines": deadlines,
             "report_date": daily_report.report_date,
             "zero_cost_verified": True,

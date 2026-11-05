@@ -14,7 +14,6 @@ dist/
 build/
 
 # Database & SQLite
-hunter_ai.db
 hunter_ai.db-journal
 hunter_ai.db-wal
 *.sqlite

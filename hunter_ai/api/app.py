@@ -65,6 +65,14 @@ async def lifespan(app: FastAPI):
             creator_agent = CreatorAgent()
             await creator_agent.sync_creator_opportunities(session)
 
+            # Auto-submit verified cloud forms on fresh cloud boot
+            try:
+                from hunter_ai.engines.cloud_form_submitter import CloudFormSubmitterEngine
+                cloud_submitter = CloudFormSubmitterEngine()
+                await cloud_submitter.submit_all_eligible_swag_forms(session)
+            except Exception as e:
+                print(f"⚠️ [Hunter AI] Cloud submitter pre-seed warning: {e}")
+
             if not (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")):
                 master_orchestrator = OpportunityHunterOrchestrator()
                 await master_orchestrator.run_full_autonomous_cycle(session)

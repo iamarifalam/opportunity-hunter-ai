@@ -1,0 +1,27 @@
+name: Cloud Autonomous Opportunity Hunter
+
+on:
+  schedule:
+    # Runs automatically every 6 hours in GitHub cloud
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-autonomous-hunter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Production Autonomous Cycle
+        run: |
+          echo "🚀 Triggering Opportunity Hunter AI autonomous cycle on Vercel..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://opportunity-hunter-ai-nine.vercel.app/api/cron/sync")
+          HTTP_BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n 1)
+
+          echo "HTTP Status: $HTTP_STATUS"
+          echo "Response Body: $HTTP_BODY"
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "❌ Autonomous cycle trigger returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✅ Cloud cycle completed successfully with status 200 OK."

@@ -70,6 +70,14 @@ class Settings(BaseSettings):
             self.VERCEL = True
             if not self.DATABASE_URL:
                 self.DATABASE_PATH = Path("/tmp/hunter_ai.db")
+                template_db = BASE_DIR / "hunter_ai.db"
+                if not self.DATABASE_PATH.exists() and template_db.exists():
+                    try:
+                        import shutil
+                        shutil.copy2(template_db, self.DATABASE_PATH)
+                        print("📦 [Hunter AI] Seeded /tmp/hunter_ai.db from bundled database snapshot.")
+                    except Exception as e:
+                        print(f"⚠️ [Hunter AI] Could not seed /tmp/hunter_ai.db from bundle: {e}")
         return self
 
     def get_async_db_url(self) -> str:

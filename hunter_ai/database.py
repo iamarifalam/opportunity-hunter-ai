@@ -23,13 +23,20 @@ if "sqlite" in db_url:
         connect_args={"check_same_thread": False},
     )
 else:
-    # PostgreSQL configuration
+    # PostgreSQL configuration (Neon, Supabase, RDS)
+    clean_url = db_url
+    connect_args = {}
+    if "sslmode=" in clean_url:
+        clean_url = clean_url.split("?")[0]
+        connect_args["ssl"] = True
+
     engine = create_async_engine(
-        db_url,
+        clean_url,
         echo=False,
         pool_size=10,
         max_overflow=20,
         pool_pre_ping=True,
+        connect_args=connect_args,
     )
 
 AsyncSessionLocal = async_sessionmaker(

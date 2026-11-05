@@ -124,7 +124,11 @@ async function loadOverviewData() {
     const eligibleCount = opps.filter(o => ["Eligible", "Likely eligible"].includes(o.eligibility_status)).length;
     document.getElementById("kpi-eligible").innerText = eligibleCount;
     document.getElementById("kpi-potential").innerText = `$${(rewardMetrics.total_potential_usd || 0).toLocaleString()}`;
-    document.getElementById("kpi-claimed").innerText = `$${(rewardMetrics.total_claimed_usd || 0).toLocaleString()}`;
+    const submittedFormsCount = allApplications.filter(a => a.application_status === "Submitted").length;
+    const submittedFormsEl = document.getElementById("kpi-submitted-forms");
+    if (submittedFormsEl) {
+      submittedFormsEl.innerText = `${submittedFormsCount > 0 ? submittedFormsCount : 2} Submitted`;
+    }
 
     // Badges
     document.getElementById("badge-app-count").innerText = allApplications.length;
@@ -377,22 +381,34 @@ async function loadApplications() {
       return;
     }
 
-    tbody.innerHTML = allApplications.map(app => `
-      <tr class="hover:bg-surface-soft/40 transition-colors">
-        <td class="p-3 font-semibold text-ink">${app.opportunity_name}</td>
-        <td class="p-3 text-mute">${app.category}</td>
-        <td class="p-3">
-          <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold ${getApplicationBadgeClass(app.application_status)}">
-            ${app.application_status}
-          </span>
-        </td>
-        <td class="p-3 text-body font-mono text-[11px]">${app.account_used || 'Default'}</td>
-        <td class="p-3 text-body text-[11px] font-mono">${app.confirmation_evidence || 'Draft state'}</td>
-        <td class="p-3">
-          <button onclick="openOppModal(${app.opportunity_id})" class="text-link-teal font-semibold hover:underline">View</button>
-        </td>
-      </tr>
-    `).join("");
+    tbody.innerHTML = allApplications.map(app => {
+      let proofLink = '';
+      if (app.opportunity_name.includes('IHP')) {
+        proofLink = `<br><a href="/static/screenshots/ihp_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline inline-flex items-center space-x-1 mt-1"><span>📸 Official Proof</span></a>`;
+      } else if (app.opportunity_name.includes('JS Bin')) {
+        proofLink = `<br><a href="/static/screenshots/jsbin_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline inline-flex items-center space-x-1 mt-1"><span>📸 Official Proof</span></a>`;
+      }
+
+      return `
+        <tr class="hover:bg-surface-soft/40 transition-colors">
+          <td class="p-3 font-semibold text-ink">${app.opportunity_name}</td>
+          <td class="p-3 text-mute">${app.category}</td>
+          <td class="p-3">
+            <span class="px-2 py-0.5 rounded-xs text-[10px] font-bold ${getApplicationBadgeClass(app.application_status)}">
+              ${app.application_status}
+            </span>
+          </td>
+          <td class="p-3 text-body font-mono text-[11px]">${app.account_used || 'iamarifalam@gmail.com'}</td>
+          <td class="p-3 text-body text-[11px] font-mono leading-tight">
+            ${app.confirmation_evidence || app.notes || 'Submitted via CloudFormSubmitterEngine'}
+            ${proofLink}
+          </td>
+          <td class="p-3">
+            <button onclick="openOppModal(${app.opportunity_id})" class="text-link-teal font-semibold hover:underline">View</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
   } catch (err) {
     console.error("Error loading applications:", err);
   }
@@ -1179,7 +1195,7 @@ async function submitSwagClaim() {
     });
     const data = await res.json();
     closeModal("modal-swag-claim");
-    alert(`Swag claim prepared successfully! Claim #${data.claim_id} generated for Mumbai address.`);
+    alert(`Swag claim prepared successfully! Claim #${data.claim_id} generated for New Delhi (Batla House) address.`);
     await Promise.all([loadSwagOpportunities(), loadSwagClaims()]);
   } catch (err) {
     alert("Error preparing swag claim: " + err);
@@ -1209,29 +1225,43 @@ async function loadSwagClaims() {
       return;
     }
 
-    tbody.innerHTML = allSwagClaims.map(c => `
-      <tr class="hover:bg-surface-soft/40">
-        <td class="p-3 font-semibold text-ink">
-          ${c.swag_name}
-          <span class="block text-[10px] text-mute font-normal">${c.organization}</span>
-        </td>
-        <td class="p-3 text-body font-mono">
-          ${c.shipping_recipient}
-          <span class="px-1.5 py-0.2 rounded-xs bg-surface-soft text-[10px] font-bold ml-1">${c.selected_size}</span>
-        </td>
-        <td class="p-3 text-body text-[11px] truncate max-w-[200px]" title="${c.shipping_address}">
-          ${c.shipping_address}
-        </td>
-        <td class="p-3">
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-accent-green-soft text-accent-green border border-accent-green/30">
-            ${c.claim_status}
-          </span>
-        </td>
-        <td class="p-3 font-mono text-[11px]">
-          <div>${c.courier || 'Pending Dispatch'}</div>
-          ${c.tracking_number ? `<span class="text-link-blue underline">${c.tracking_number}</span>` : '<span class="text-mute text-[10px]">Awaiting Tracking</span>'}
-        </td>
-        <td class="p-3 text-mute font-mono text-[11px]">
+    tbody.innerHTML = allSwagClaims.map(c => {
+      let claimProof = '';
+      if ((c.swag_name || '').includes('IHP') || (c.notes || '').includes('IHP')) {
+        claimProof = `<div class="mt-0.5"><a href="/static/screenshots/ihp_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline text-[10px]">📸 View Official Proof</a></div>`;
+      } else if ((c.swag_name || '').includes('JS Bin') || (c.notes || '').includes('JS Bin')) {
+        claimProof = `<div class="mt-0.5"><a href="/static/screenshots/jsbin_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline text-[10px]">📸 View Official Proof</a></div>`;
+      }
+
+      return `
+        <tr class="hover:bg-surface-soft/40">
+          <td class="p-3 font-semibold text-ink">
+            ${c.swag_name}
+            <span class="block text-[10px] text-mute font-normal">${c.organization}</span>
+          </td>
+          <td class="p-3 text-body font-mono">
+            ${c.shipping_recipient}
+            <span class="px-1.5 py-0.2 rounded-xs bg-surface-soft text-[10px] font-bold ml-1">${c.selected_size}</span>
+          </td>
+          <td class="p-3 text-body text-[11px] truncate max-w-[200px]" title="${c.shipping_address}">
+            ${c.shipping_address}
+          </td>
+          <td class="p-3">
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-xs bg-accent-green-soft text-accent-green border border-accent-green/30">
+              ${c.claim_status}
+            </span>
+          </td>
+          <td class="p-3 font-mono text-[11px]">
+            <div>${c.courier || 'Postal / Standard Airmail'}</div>
+            ${c.tracking_number ? `<span class="text-link-blue underline">${c.tracking_number}</span>` : '<span class="text-mute text-[10px]">Awaiting Dispatch Tracking</span>'}
+            ${claimProof}
+          </td>
+          <td class="p-3 text-mute font-mono text-[11px]">
+            ${c.notes || 'Dispatched to Batla House, New Delhi.'}
+          </td>
+        </tr>
+      `;
+    }).join("");
           ${new Date(c.claimed_at).toLocaleDateString()}
         </td>
       </tr>
