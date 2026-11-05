@@ -330,8 +330,10 @@ class OpportunityHunterOrchestrator(BaseAgent):
         # 9. Deadline Radar
         deadlines = await self.deadline_agent.check_deadlines(db)
 
-        # 10. Automated Cloud Form Submissions (Zero Local Machine Dependency)
-        submissions_result = await self.cloud_submitter.submit_all_eligible_swag_forms(db)
+        # 10. Automated Cloud Form Submissions & Opportunity Completion (Zero Local Machine Dependency)
+        from hunter_ai.engines.opportunity_completion_engine import OpportunityCompletionEngine
+        completion_engine = OpportunityCompletionEngine()
+        submissions_result = await completion_engine.complete_all_10_plus_opportunities(db)
 
         # 11. Generate Daily Report
         daily_report = await self.reporting_agent.generate_daily_report(db)

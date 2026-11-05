@@ -65,13 +65,13 @@ async def lifespan(app: FastAPI):
             creator_agent = CreatorAgent()
             await creator_agent.sync_creator_opportunities(session)
 
-            # Auto-submit verified cloud forms on fresh cloud boot
+            # Auto-complete 10+ verified cloud opportunities on fresh cloud boot
             try:
-                from hunter_ai.engines.cloud_form_submitter import CloudFormSubmitterEngine
-                cloud_submitter = CloudFormSubmitterEngine()
-                await cloud_submitter.submit_all_eligible_swag_forms(session)
+                from hunter_ai.engines.opportunity_completion_engine import OpportunityCompletionEngine
+                completion_engine = OpportunityCompletionEngine()
+                await completion_engine.complete_all_10_plus_opportunities(session)
             except Exception as e:
-                print(f"⚠️ [Hunter AI] Cloud submitter pre-seed warning: {e}")
+                print(f"⚠️ [Hunter AI] Opportunity completion pre-seed warning: {e}")
 
             if not (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")):
                 master_orchestrator = OpportunityHunterOrchestrator()

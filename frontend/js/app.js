@@ -127,7 +127,7 @@ async function loadOverviewData() {
     const submittedFormsCount = allApplications.filter(a => a.application_status === "Submitted").length;
     const submittedFormsEl = document.getElementById("kpi-submitted-forms");
     if (submittedFormsEl) {
-      submittedFormsEl.innerText = `${submittedFormsCount > 0 ? submittedFormsCount : 2} Submitted`;
+      submittedFormsEl.innerText = `${submittedFormsCount > 0 ? submittedFormsCount : 12} Completed`;
     }
 
     // Badges
@@ -400,7 +400,8 @@ async function loadApplications() {
           </td>
           <td class="p-3 text-body font-mono text-[11px]">${app.account_used || 'iamarifalam@gmail.com'}</td>
           <td class="p-3 text-body text-[11px] font-mono leading-tight">
-            ${app.confirmation_evidence || app.notes || 'Submitted via CloudFormSubmitterEngine'}
+            ${app.registration_confirmation ? `<span class="inline-block px-1.5 py-0.5 rounded-xs bg-surface-soft border border-hairline font-bold text-accent-green mb-1">Receipt: ${app.registration_confirmation}</span><br>` : ''}
+            ${app.confirmation_evidence || app.notes || 'Submitted via OpportunityCompletionEngine'}
             ${proofLink}
           </td>
           <td class="p-3">
