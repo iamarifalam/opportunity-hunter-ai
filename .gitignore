@@ -1,0 +1,37 @@
+# Environment and secrets
+.env
+.env.local
+*.env
+
+# Python & Virtualenv
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Database & SQLite
+hunter_ai.db
+hunter_ai.db-journal
+hunter_ai.db-wal
+*.sqlite
+*.sqlite3
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Playwright & Browsers
+.playwright/
+test-results/
+
+# Vercel
+.vercel/
+
+# OS specific
+.DS_Store
+Thumbs.db

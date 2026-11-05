@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opportunity Hunter AI — PostHog Engineering Sketchbook Edition</title>
+  
+  <!-- IBM Plex Sans & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN with PostHog Design Tokens -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"IBM Plex Sans"', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            // PostHog Brand & Accent
+            primary: {
+              DEFAULT: '#f7a501', // PostHog Yellow
+              pressed: '#dd9001',
+              active: '#b17816',
+            },
+            // Surfaces
+            canvas: '#eeefe9',     // Warm cream background
+            'surface-soft': '#e5e7e0',
+            'surface-card': '#ffffff',
+            'surface-doc': '#fcfcfa',
+            'surface-dark': '#23251d', // Olive-charcoal
+            hairline: '#bfc1b7',
+            'hairline-soft': '#dcdfd2',
+            'on-dark': '#ffffff',
+            
+            // Text
+            ink: '#23251d',        // Headlines & primary text
+            body: '#4d4f46',       // Paragraph text
+            charcoal: '#33342d',
+            mute: '#6c6e63',
+            ash: '#9b9c92',
+            stone: '#b6b7af',
+
+            // Semantic & Callout pastels
+            'link-blue': '#1d4ed8',
+            'link-teal': '#1078a3',
+            'accent-blue': '#2c84e0',
+            'accent-blue-soft': '#dceaf6',
+            'accent-red': '#cd4239',
+            'accent-red-soft': '#f7d6d3',
+            'accent-green': '#2c8c66',
+            'accent-green-soft': '#d9eddf',
+            'accent-purple': '#7c44a6',
+            'accent-purple-soft': '#e7d8ee',
+          },
+          borderRadius: {
+            'none': '0px',
+            'xs': '2px',
+            'sm': '4px',
+            'md': '6px',
+            'lg': '8px',
+            'full': '9999px',
+          },
+          letterSpacing: {
+            tighter: '-0.6px',
+            tight: '-0.5px',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #eeefe9;
+      color: #4d4f46;
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      color: #23251d;
+      font-family: 'IBM Plex Sans', sans-serif;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Flat PostHog cards: strictly no drop shadows, thin 1px hairline border */
+    .ph-card {
+      background-color: #ffffff;
+      border: 1px solid #bfc1b7;
+      border-radius: 6px;
+      box-shadow: none !important;
+    }
+    .ph-card-doc {
+      background-color: #fcfcfa;
+      border: 1px solid #bfc1b7;
+      border-radius: 6px;
+      box-shadow: none !important;
+    }
+    /* PostHog Yellow primary CTA pill */
+    .btn-ph-primary {
+      background-color: #f7a501;
+      color: #23251d;
+      font-weight: 700;
+      border-radius: 9999px;
+      padding: 8px 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s ease, transform 0.05s ease;
+      border: 1px solid rgba(35, 37, 29, 0.15);
+    }
+    .btn-ph-primary:hover {
+      background-color: #dd9001;
+    }
+    .btn-ph-primary:active {
+      background-color: #b17816;
+      transform: translateY(1px);
+    }
+    /* PostHog secondary button on cream */
+    .btn-ph-secondary {
+      background-color: #e5e7e0;
+      color: #23251d;
+      font-weight: 600;
+      border-radius: 6px;
+      padding: 8px 16px;
+      border: 1px solid #bfc1b7;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.15s ease;
+    }
+    .btn-ph-secondary:hover {
+      background-color: #dcdfd2;
+    }
+    /* Custom scrollbars matching PostHog cream/olive chrome */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #eeefe9; }
+    ::-webkit-scrollbar-thumb { background: #bfc1b7; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #9b9c92; }
+  </style>
+</head>
+<body class="bg-canvas text-body min-h-screen flex flex-col antialiased">
+
+  <!-- Primary Top Navigation Bar (56px, Canvas cream background, 1px bottom hairline) -->
+  <header class="border-b border-hairline bg-canvas sticky top-0 z-40 h-14">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+      
+      <!-- Brand & Mascot Logo -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('overview')">
+        <div class="flex items-center space-x-2">
+          <!-- Hand-drawn Hedgehog Mascot SVG -->
+          <svg class="w-8 h-8 shrink-0" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Hedgehog body & quills -->
+            <path d="M20 70 C10 60 15 35 35 25 C45 20 65 20 75 30 C85 40 90 55 85 70 C80 82 70 85 50 85 C30 85 22 80 20 70 Z" fill="#23251d" />
+            <!-- Quills spikes -->
+            <path d="M22 38 L12 25 L30 32 M35 22 L32 8 L45 20 M55 18 L60 5 L65 19 M75 25 L88 15 L78 35 M85 40 L98 38 L86 52 M88 58 L98 62 L85 70" stroke="#23251d" stroke-width="4" stroke-linecap="round" />
+            <!-- Face -->
+            <path d="M50 40 C65 40 82 50 80 72 C78 78 68 82 50 82 C35 82 35 70 38 55 C40 45 45 40 50 40 Z" fill="#fcfcfa" stroke="#23251d" stroke-width="2.5" />
+            <!-- Nose & mouth -->
+            <circle cx="82" cy="65" r="4.5" fill="#23251d" />
+            <path d="M78 71 C74 74 70 73 68 70" stroke="#23251d" stroke-width="2.5" stroke-linecap="round" fill="none" />
+            <!-- Eye & spectacles -->
+            <circle cx="62" cy="54" r="6" stroke="#23251d" stroke-width="2.5" fill="#ffffff" />
+            <circle cx="63" cy="54" r="2.5" fill="#23251d" />
+            <path d="M56 54 L50 54" stroke="#23251d" stroke-width="2" />
+            <!-- Little engineer ear -->
+            <path d="M42 42 C40 38 46 36 48 40 Z" fill="#f7a501" stroke="#23251d" stroke-width="2" />
+          </svg>
+          <div class="flex items-baseline space-x-1.5">
+            <span class="font-extrabold text-lg tracking-tight text-ink">Opportunity Hunter</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-mute">AI</span>
+          </div>
+        </div>
+        <span class="hidden md:inline-block text-[11px] font-semibold text-body bg-surface-soft px-2 py-0.5 rounded-xs border border-hairline">
+          Arif Alam · TCS & NMIMS
+        </span>
+      </div>
+
+      <!-- Right CTAs -->
+      <div class="flex items-center space-x-3">
+        <!-- Live Status Pill -->
+        <div class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-accent-green-soft text-accent-green text-[11px] font-bold border border-accent-green/30">
+          <span class="w-2 h-2 rounded-full bg-accent-green animate-pulse"></span>
+          <span>Zero-Cost Active</span>
+        </div>
+
+        <!-- The PostHog Primary Yellow CTA Pill -->
+        <button id="btn-run-daily" onclick="triggerDailyRun()" class="btn-ph-primary text-xs space-x-2">
+          <svg class="w-3.5 h-3.5 animate-spin hidden" id="spinner-daily" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <svg class="w-3.5 h-3.5" id="icon-daily" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>Run Daily Pipeline</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sub-Nav Strip (40px, surface-soft, section anchor links) -->
+  <div class="border-b border-hairline bg-surface-soft h-10 hidden sm:block text-xs">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+      <div class="flex items-center space-x-6 text-body font-medium">
+        <span class="text-ink font-bold flex items-center space-x-1.5">
+          <span>🦔</span> <span>Personal Sketchbook</span>
+        </span>
+        <button onclick="switchTab('overview')" class="hover:text-ink transition-colors">Overview</button>
+        <button onclick="switchTab('discover')" class="hover:text-ink transition-colors">All 10 Categories</button>
+        <button onclick="switchTab('recommended')" class="hover:text-ink transition-colors">AI Recommendations</button>
+        <button onclick="switchTab('applications')" class="hover:text-ink transition-colors">Applications</button>
+        <button onclick="switchTab('approvals')" class="hover:text-ink transition-colors">Approval Queue</button>
+        <button onclick="switchTab('rewards')" class="hover:text-ink transition-colors">Rewards Ledger</button>
+      </div>
+      <div class="text-[11px] text-mute font-mono">
+        Daily Cron: 08:00 AM IST · SQLite Persistent
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container: Sticky 240px Doc Sidebar + ~720px–980px Article Area -->
+  <div class="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-8 flex flex-col md:flex-row gap-8">
+
+    <!-- PostHog 240px Sticky Left Sidebar -->
+    <aside class="w-full md:w-[240px] shrink-0 space-y-6">
+      
+      <!-- Ask Opportunity AI / Search Input -->
+      <div class="space-y-2">
+        <label class="block text-[11px] font-bold uppercase tracking-wider text-mute">Search & Navigation</label>
+        <div class="relative">
+          <svg class="w-3.5 h-3.5 text-mute absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" id="sidebar-quick-search" onkeyup="handleQuickSearch(this.value)" placeholder="Ask Opportunity AI..." class="w-full bg-surface-card border border-hairline text-ink text-xs rounded-md pl-8 pr-3 py-2 focus:outline-none focus:border-link-blue focus:ring-1 focus:ring-link-blue">
+        </div>
+      </div>
+
+      <!-- Navigation List (PostHog Doc Sidebar style with outline icons) -->
+      <nav class="space-y-1 text-xs">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-mute px-2 py-1">Primary Engines</div>
+
+        <button onclick="switchTab('overview')" id="tab-btn-overview" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-semibold bg-surface-card text-ink border border-hairline text-left transition-colors">
+          <svg class="w-4 h-4 text-ink shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span>Overview & Brief</span>
+        </button>
+
+        <button onclick="switchTab('swag')" id="tab-btn-swag" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-sm">🎁</span>
+            <span class="font-bold text-ink">Swag Hunter (India)</span>
+          </div>
+          <span id="badge-swag-count" class="text-[10px] px-1.5 py-0.2 rounded-xs bg-primary/20 text-ink font-mono font-bold">New</span>
+        </button>
+
+        <button onclick="switchTab('discover')" id="tab-btn-discover" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span>Opportunity Radar</span>
+        </button>
+
+        <button onclick="switchTab('credits')" id="tab-btn-credits" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <span class="text-sm">☁️</span>
+          <span>Cloud & AI Credits</span>
+        </button>
+
+        <button onclick="switchTab('recommended')" id="tab-btn-recommended" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+          <span>Recommended for Me</span>
+        </button>
+
+        <div class="text-[11px] font-bold uppercase tracking-wider text-mute px-2 pt-3 pb-1">Execution & Claims</div>
+
+        <button onclick="switchTab('applications')" id="tab-btn-applications" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <div class="flex items-center space-x-2.5">
+            <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Applications Tracker</span>
+          </div>
+          <span id="badge-app-count" class="text-[10px] px-1.5 py-0.2 rounded-xs bg-surface-soft text-ink font-mono font-bold">0</span>
+        </button>
+
+        <button onclick="switchTab('approvals')" id="tab-btn-approvals" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <div class="flex items-center space-x-2.5">
+            <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Human Approval Gate</span>
+          </div>
+          <span id="badge-approval-count" class="text-[10px] px-1.5 py-0.2 rounded-xs bg-accent-red-soft text-accent-red font-mono font-bold">0</span>
+        </button>
+
+        <button onclick="switchTab('deadlines')" id="tab-btn-deadlines" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Deadlines Radar</span>
+        </button>
+
+        <button onclick="switchTab('rewards')" id="tab-btn-rewards" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Rewards Vault</span>
+        </button>
+
+        <button onclick="switchTab('swag-claims')" id="tab-btn-swag-claims" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-sm">📦</span>
+            <span>Swag Delivery Tracker</span>
+          </div>
+          <span id="badge-claims-count" class="text-[10px] px-1.5 py-0.2 rounded-xs bg-surface-soft text-ink font-mono font-bold">0</span>
+        </button>
+
+        <div class="text-[11px] font-bold uppercase tracking-wider text-mute px-2 pt-3 pb-1">Orchestrator & Health</div>
+
+        <button onclick="switchTab('orchestrator')" id="tab-btn-orchestrator" class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-sm">⚙️</span>
+            <span>Agent Control Centre</span>
+          </div>
+          <span class="w-2 h-2 rounded-full bg-accent-green animate-pulse"></span>
+        </button>
+
+        <button onclick="switchTab('sources')" id="tab-btn-sources" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span>Sources & Registry</span>
+        </button>
+
+        <button onclick="switchTab('integrations')" id="tab-btn-integrations" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+          <span>Integrations Health</span>
+        </button>
+
+        <button onclick="switchTab('reports')" id="tab-btn-reports" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+          <span>Daily Reports</span>
+        </button>
+
+        <button onclick="switchTab('logs')" id="tab-btn-logs" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+          <span>Activity Audit Log</span>
+        </button>
+
+        <button onclick="switchTab('telemetry')" id="tab-btn-telemetry" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <span>FinOps Zero Cost ($0)</span>
+        </button>
+
+        <button onclick="switchTab('profile')" id="tab-btn-profile" class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded-md font-medium text-body hover:text-ink hover:bg-surface-soft text-left transition-colors">
+          <svg class="w-4 h-4 text-mute shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <span>Arif's Profile & Rules</span>
+        </button>
+      </nav>
+
+      <!-- Hedgehog Mascot Marginalia Vignette in Sidebar -->
+      <div class="ph-card p-3.5 space-y-2 relative overflow-hidden">
+        <div class="flex items-center space-x-2">
+          <!-- Mini Mascot -->
+          <svg class="w-6 h-6 shrink-0" viewBox="0 0 60 60" fill="none">
+            <path d="M12 42 C6 35 10 20 22 15 C28 12 40 12 46 18 C52 24 55 33 52 42 C49 49 43 51 31 51 C19 51 14 48 12 42 Z" fill="#23251d" />
+            <path d="M30 25 C40 25 50 31 49 44 C48 48 42 50 31 50 C22 50 22 43 24 34 C25 28 28 25 30 25 Z" fill="#fcfcfa" stroke="#23251d" stroke-width="1.5" />
+            <circle cx="50" cy="40" r="2.5" fill="#23251d" />
+            <circle cx="38" cy="33" r="3.5" stroke="#23251d" stroke-width="1.5" fill="#fff" />
+            <circle cx="38" cy="33" r="1.5" fill="#23251d" />
+          </svg>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-ink">Max the Hedgehog</span>
+        </div>
+        <p class="text-[11px] text-body leading-relaxed">
+          "I check all terms so Arif never pays a single rupee for cloud credits or hackathons!"
+        </p>
+        <div class="text-[10px] text-mute pt-1 border-t border-hairline-soft font-mono">
+          Strict Zero-Cost Guard
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Stream -->
+    <main class="flex-1 space-y-10 min-w-0">
+
+      <!-- ================= SECTION: OVERVIEW ================= -->
+      <section id="section-overview" class="space-y-8">
+        
+        <!-- PostHog Signature Hero Chapter: Cream Canvas with Engineering Sketchbook Banner -->
+        <div class="ph-card p-6 md:p-8 relative overflow-hidden">
+          <div class="flex flex-col lg:flex-row items-start justify-between gap-6">
+            <div class="space-y-2 max-w-xl">
+              <div class="flex items-center space-x-2">
+                <span class="text-[12px] font-bold uppercase tracking-wider text-ink bg-surface-soft px-2 py-0.5 rounded-xs border border-hairline">
+                  DAILY INTELLIGENCE BRIEF
+                </span>
+                <span class="text-xs text-mute font-mono" id="report-date-badge">Nov 5, 2026</span>
+              </div>
+              <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tighter text-ink leading-tight">
+                Opportunity Hunter AI is scanning 10 categories worldwide.
+              </h1>
+              <p class="text-sm text-body leading-relaxed pt-1" id="report-summary-text">
+                Continuous autonomous discovery active. Evaluating eligibility for Arif Alam across AI Engineering, NMIMS MBA student credentials, and free cloud credits.
+              </p>
+            </div>
+
+            <!-- Big Hedgehog Mascot Illustration in Hero -->
+            <div class="shrink-0 flex items-center justify-center p-2 bg-surface-soft/60 rounded-md border border-hairline">
+              <svg class="w-32 h-28" viewBox="0 0 140 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Hedgehog Body -->
+                <path d="M25 85 C10 72 18 40 45 28 C58 22 85 22 98 35 C112 48 118 68 112 86 C105 101 92 105 65 105 C38 105 28 98 25 85 Z" fill="#23251d" />
+                <!-- Spikes -->
+                <path d="M28 45 L15 30 L38 38 M45 26 L40 8 L58 24 M72 20 L78 5 L85 22 M98 30 L115 18 L102 42 M112 50 L128 48 L114 65 M115 72 L128 78 L112 88" stroke="#23251d" stroke-width="4.5" stroke-linecap="round" />
+                <!-- Lab Coat / Vest in PostHog Yellow -->
+                <path d="M52 68 C58 60 78 60 84 68 L88 95 C88 98 80 102 68 102 C56 102 48 98 48 95 Z" fill="#f7a501" stroke="#23251d" stroke-width="2.5" />
+                <!-- Face -->
+                <path d="M65 48 C85 48 106 60 104 88 C102 96 88 100 65 100 C45 100 45 86 48 68 C52 54 58 48 65 48 Z" fill="#fcfcfa" stroke="#23251d" stroke-width="3" />
+                <!-- Nose -->
+                <circle cx="106" cy="80" r="5.5" fill="#23251d" />
+                <!-- Glasses -->
+                <circle cx="80" cy="66" r="8" stroke="#23251d" stroke-width="3" fill="#ffffff" />
+                <circle cx="81" cy="66" r="3.5" fill="#23251d" />
+                <path d="M72 66 L64 66" stroke="#23251d" stroke-width="2.5" />
+                <!-- Laptop / Terminal -->
+                <rect x="76" y="86" width="32" height="20" rx="3" fill="#23251d" stroke="#23251d" stroke-width="2" />
+                <rect x="79" y="89" width="26" height="14" rx="1.5" fill="#fcfcfa" />
+                <path d="M83 96 L87 96 M89 96 L97 96" stroke="#23251d" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+
+          <!-- Quick Actions Bar inside Hero -->
+          <div class="pt-5 mt-6 border-t border-hairline flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-ink">Verified Status:</span>
+              <span class="text-body font-mono">18 catalog items loaded · 2 confirmed registered</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="switchTab('discover')" class="btn-ph-secondary text-xs">Browse All 10 Categories →</button>
+              <button onclick="switchTab('reports')" class="text-link-teal font-semibold hover:underline">Read Full Daily Report</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-Up KPI Cards (PostHog Metric Tiles in White Cards with Hairline Border) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="ph-card p-5 space-y-1">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">Discovered</div>
+            <div class="text-3xl font-extrabold text-ink tracking-tight" id="kpi-discovered">--</div>
+            <p class="text-xs text-body pt-1">Across 10 Categories</p>
+          </div>
+
+          <div class="ph-card p-5 space-y-1">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">Eligible for Arif</div>
+            <div class="text-3xl font-extrabold text-ink tracking-tight flex items-baseline space-x-1">
+              <span id="kpi-eligible">--</span>
+              <span class="text-xs font-semibold text-accent-green">✓ India</span>
+            </div>
+            <p class="text-xs text-body pt-1">NMIMS MBA + TCS matched</p>
+          </div>
+
+          <div class="ph-card p-5 space-y-1">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">Potential Value</div>
+            <div class="text-3xl font-extrabold text-ink tracking-tight" id="kpi-potential">--</div>
+            <p class="text-xs text-body pt-1">Grants, prizes & GPU credits</p>
+          </div>
+
+          <div class="ph-card p-5 space-y-1">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-accent-green tracking-tight" id="kpi-claimed">$0.00</div>
+            <p class="text-xs text-body pt-1">Verified receipt vouchers</p>
+          </div>
+        </div>
+
+        <!-- PostHog Pastel Callout Banner: "💡 Tip" inside Doc Article style -->
+        <div class="p-4 bg-accent-blue-soft border-l-4 border-accent-blue rounded-md text-xs space-y-1">
+          <div class="font-bold text-ink flex items-center space-x-1.5">
+            <span>💡</span> <span>Tip: Treat Distance MBA as Valid Student Status</span>
+          </div>
+          <p class="text-body leading-relaxed">
+            Per Arif Alam's instructions, your enrollment in <strong>NMIMS Mumbai (MBA in Operations & Data Science, 2025–2027)</strong> is permanently recognized as student status. Student Developer Packs and university grants qualify for automatic screening.
+          </p>
+        </div>
+
+        <!-- Pre-Registered Spotlight (Homingo & Arthaton) in PostHog Feature Cards -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-mute">PROOF LEDGER</div>
+              <h2 class="text-lg font-bold text-ink">User-Reported Registered Events</h2>
+            </div>
+            <span class="text-xs font-mono text-mute">Awaiting live Gmail confirmation</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="pre-registered-cards">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Top Priority Recommendations List -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-mute">RANKED RADAR</div>
+              <h2 class="text-lg font-bold text-ink">Highest Scored Opportunities for You</h2>
+            </div>
+            <button onclick="switchTab('recommended')" class="text-xs font-bold text-link-teal hover:underline">View All Ranked →</button>
+          </div>
+
+          <div class="space-y-3" id="top-recommended-list">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: DISCOVER OPPORTUNITIES ================= -->
+      <section id="section-discover" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">GLOBAL CATALOG</div>
+          <h2 class="text-xl font-extrabold text-ink">Discover Free Opportunities</h2>
+          <p class="text-xs text-body mt-0.5">Filter across 10 official categories: Hackathons, Cloud Credits, AI Credits, Certifications, Student Packs & more.</p>
+        </div>
+
+        <!-- Filter Controls (PostHog flat card) -->
+        <div class="ph-card p-4 space-y-3">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1 relative">
+              <svg class="w-4 h-4 text-mute absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input type="text" id="search-input" onkeyup="filterOpportunities()" placeholder="Search opportunities, organizers, tech stack..." class="w-full bg-surface-doc border border-hairline text-ink text-xs rounded-md pl-9 pr-4 py-2 focus:outline-none focus:border-link-blue">
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <select id="filter-category" onchange="filterOpportunities()" class="bg-surface-doc border border-hairline text-ink text-xs rounded-md px-3 py-2 focus:outline-none focus:border-link-blue">
+                <option value="All">All Categories (10)</option>
+                <option value="Hackathons">Hackathons</option>
+                <option value="Cloud Credits">Cloud Credits</option>
+                <option value="AI Credits">AI Credits</option>
+                <option value="Cash Rewards">Cash Rewards</option>
+                <option value="Certifications">Certifications</option>
+                <option value="Student Benefits">Student Benefits</option>
+                <option value="Creator Programs">Creator Programs</option>
+                <option value="Events">Events & Travel</option>
+                <option value="Research">Research Fellowships</option>
+                <option value="Gadgets">Gadgets & Hardware</option>
+              </select>
+
+              <select id="filter-eligibility" onchange="filterOpportunities()" class="bg-surface-doc border border-hairline text-ink text-xs rounded-md px-3 py-2 focus:outline-none focus:border-link-blue">
+                <option value="All">All Eligibility</option>
+                <option value="Eligible">Eligible</option>
+                <option value="Likely eligible">Likely eligible</option>
+                <option value="Eligibility unclear">Eligibility unclear</option>
+              </select>
+
+              <select id="sort-by" onchange="filterOpportunities()" class="bg-surface-doc border border-hairline text-ink text-xs rounded-md px-3 py-2 focus:outline-none focus:border-link-blue">
+                <option value="score">Sort: Highest AI Score</option>
+                <option value="reward">Sort: Reward Value</option>
+                <option value="deadline">Sort: Deadline</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Opportunities Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="opportunities-grid">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: RECOMMENDED ================= -->
+      <section id="section-recommended" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">PERSONALIZED MATCHES</div>
+          <h2 class="text-xl font-extrabold text-ink">Recommended for Arif Alam</h2>
+          <p class="text-xs text-body mt-0.5">Ranked by 0–100 composite AI Score evaluating eligibility, zero-cost guarantee, cash/cloud value, and career relevance.</p>
+        </div>
+
+        <div class="space-y-4" id="recommended-detailed-grid">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: APPLICATIONS ================= -->
+      <section id="section-applications" class="space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">WORKFLOW PIPELINE</div>
+            <h2 class="text-xl font-extrabold text-ink">Applications & Form Automation</h2>
+            <p class="text-xs text-body mt-0.5">Tracks prepared application drafts, submitted registrations, and confirmation receipts.</p>
+          </div>
+        </div>
+
+        <div class="ph-card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Opportunity</th>
+                  <th class="p-3 font-bold">Category</th>
+                  <th class="p-3 font-bold">Status</th>
+                  <th class="p-3 font-bold">Account</th>
+                  <th class="p-3 font-bold">Confirmation Evidence</th>
+                  <th class="p-3 font-bold">Action</th>
+                </tr>
+              </thead>
+              <tbody id="applications-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: APPROVAL QUEUE ================= -->
+      <section id="section-approvals" class="space-y-6 hidden">
+        <div class="p-4 bg-accent-red-soft border-l-4 border-accent-red rounded-md text-xs space-y-1">
+          <div class="font-bold text-ink flex items-center space-x-1.5">
+            <span>⚠️</span> <span>Human-in-the-Loop Security Approval Queue</span>
+          </div>
+          <p class="text-body leading-relaxed">
+            Per system policy, actions requiring <strong>student/government ID upload</strong>, <strong>passwords/MFA</strong>, or <strong>binding legal IP terms</strong> are strictly halted until you review and authorize them here.
+          </p>
+        </div>
+
+        <div id="approvals-list" class="space-y-4">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: DEADLINES RADAR ================= -->
+      <section id="section-deadlines" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">TIMELINES</div>
+          <h2 class="text-xl font-extrabold text-ink">Deadlines Radar</h2>
+          <p class="text-xs text-body mt-0.5">Impending registration cutoffs and submission dates monitored automatically.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="deadlines-container">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: REWARDS VAULT ================= -->
+      <section id="section-rewards" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">FINANCIAL LEDGER</div>
+            <h2 class="text-xl font-extrabold text-ink">Rewards Vault & Proof Ledger</h2>
+            <p class="text-xs text-body mt-0.5">Strict separation: Potential rewards vs. actually claimed rewards backed by official receipt codes.</p>
+          </div>
+          <button onclick="openClaimModal()" class="btn-ph-secondary text-xs">
+            + Record Claimed Reward
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="ph-card p-6 space-y-2">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-mute">Total Potential Rewards</span>
+            <div class="text-3xl font-extrabold text-ink" id="rewards-vault-potential">$0.00</div>
+            <p class="text-xs text-body">Available across all active eligible competitions and developer programs.</p>
+          </div>
+
+          <div class="ph-card p-6 space-y-2 bg-accent-green-soft/40 border border-accent-green/40">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-accent-green">Verified Claimed Rewards</span>
+            <div class="text-3xl font-extrabold text-accent-green" id="rewards-vault-claimed">$0.00</div>
+            <p class="text-xs text-body">Confirmed with official voucher codes, transaction IDs, or certificate URLs.</p>
+          </div>
+        </div>
+
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Verified Claim History</span>
+            <span class="text-xs font-mono text-mute">Proof tokens recorded</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Opportunity</th>
+                  <th class="p-3 font-bold">Reward Type</th>
+                  <th class="p-3 font-bold">Amount</th>
+                  <th class="p-3 font-bold">Date Claimed</th>
+                  <th class="p-3 font-bold">Proof of Receipt</th>
+                </tr>
+              </thead>
+              <tbody id="claimed-rewards-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: DAILY REPORTS ================= -->
+      <section id="section-reports" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">ARCHIVE</div>
+          <h2 class="text-xl font-extrabold text-ink">Daily Intelligence Briefings</h2>
+          <p class="text-xs text-body mt-0.5">Automated morning reports compiled at 8:00 AM IST.</p>
+        </div>
+
+        <!-- Inverted Dark Code Block floating inside White Doc Card with Mascot in Margin -->
+        <div class="ph-card p-6 space-y-4 relative">
+          <div class="flex items-center justify-between border-b border-hairline pb-3">
+            <span class="font-bold text-xs uppercase text-ink">Morning Executive Brief</span>
+            <span class="text-xs font-mono text-mute" id="report-view-date">2026-11-05</span>
+          </div>
+          
+          <!-- PostHog dark code block -->
+          <div class="bg-surface-dark text-on-dark p-5 rounded-md font-mono text-xs overflow-x-auto leading-relaxed border border-surface-dark" id="report-markdown-content">
+            Loading latest report...
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: ACTIVITY AUDIT LOG ================= -->
+      <section id="section-logs" class="space-y-6 hidden">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">PROVENANCE</div>
+            <h2 class="text-xl font-extrabold text-ink">Immutable Activity Audit Log</h2>
+            <p class="text-xs text-body mt-0.5">Auditable record of every autonomous agent decision, check, and registration action.</p>
+          </div>
+          <select id="log-filter" onchange="loadActivityLogs()" class="bg-surface-doc border border-hairline text-ink text-xs rounded-md px-3 py-1.5 focus:outline-none">
+            <option value="All">All Events</option>
+            <option value="Discovery">Discovery</option>
+            <option value="Verification">Verification</option>
+            <option value="Eligibility">Eligibility</option>
+            <option value="Scoring">Scoring</option>
+            <option value="Registration">Registration</option>
+            <option value="Approval">Approval</option>
+            <option value="Reward">Reward</option>
+            <option value="Scheduler">Scheduler</option>
+          </select>
+        </div>
+
+        <div class="space-y-2" id="activity-log-items">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: PROFILE & RULES ================= -->
+      <section id="section-profile" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">USER PROFILE</div>
+          <h2 class="text-xl font-extrabold text-ink">Arif Alam — Professional Background</h2>
+          <p class="text-xs text-body mt-0.5">Single source of truth used by the eligibility engine for registration form pre-filling.</p>
+        </div>
+
+        <div class="ph-card p-6 space-y-6">
+          <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-full bg-primary/20 border border-primary flex items-center justify-center font-extrabold text-ink text-lg">
+              AA
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-ink">Arif Alam</h3>
+              <p class="text-xs text-body font-medium">AI Engineer · Tata Consultancy Services (TCS) · ~4.5 Years Exp</p>
+              <p class="text-xs text-mute">Mumbai, Maharashtra, India · iamarifalam@gmail.com</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-4 border-t border-hairline">
+            <div class="space-y-2">
+              <span class="font-bold text-ink uppercase text-[11px] tracking-wider">Academic Credentials</span>
+              <div class="p-3.5 bg-surface-doc rounded-md border border-hairline space-y-1">
+                <div class="font-bold text-ink">MBA in Operations & Data Science (2025–2027)</div>
+                <div class="text-body">NMIMS, Mumbai (Distance / Online Programme)</div>
+                <div class="text-[11px] text-accent-green font-semibold">
+                  ✓ Configured: Evaluated as valid student status for student benefit screening
+                </div>
+              </div>
+              <div class="p-3.5 bg-surface-doc rounded-md border border-hairline space-y-1">
+                <div class="font-bold text-ink">B.Tech in Information Technology (2018–2022)</div>
+                <div class="text-body">AKTU (Graduated)</div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <span class="font-bold text-ink uppercase text-[11px] tracking-wider">Creator Platform</span>
+              <div class="p-3.5 bg-surface-doc rounded-md border border-hairline space-y-1">
+                <div class="font-bold text-ink">Data Science Reality</div>
+                <div class="text-body">Content: AI Engineering, Generative AI, LLMs, RAG, MCP</div>
+                <div class="text-body">Community: Data Science Reality WhatsApp Network</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-4 border-t border-hairline">
+            <span class="font-bold text-ink uppercase text-[11px] tracking-wider text-xs">Technical Skills & Tooling</span>
+            <div class="flex flex-wrap gap-1.5" id="profile-skills-tags">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-4 border-t border-hairline">
+            <span class="font-bold text-ink uppercase text-[11px] tracking-wider text-xs">Verified Professional Links</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs" id="profile-links-list">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: SOURCES REGISTRY ================= -->
+      <section id="section-sources" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">SOURCE PROVENANCE</div>
+          <h2 class="text-xl font-extrabold text-ink">Registered Opportunity Sources</h2>
+          <p class="text-xs text-body mt-0.5">Official scrapers, APIs, and public feeds monitored by Opportunity Hunter AI.</p>
+        </div>
+
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Active Sources Registry</span>
+            <span class="text-xs font-mono text-mute" id="sources-count-badge">10 registered sources</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Source Name</th>
+                  <th class="p-3 font-bold">Category</th>
+                  <th class="p-3 font-bold">Health Status</th>
+                  <th class="p-3 font-bold">Reliability</th>
+                  <th class="p-3 font-bold">Rate Limit</th>
+                  <th class="p-3 font-bold">Last Scraped</th>
+                </tr>
+              </thead>
+              <tbody id="sources-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-base font-bold text-ink">Recent Discovery Jobs</h3>
+          <div class="ph-card overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                  <tr>
+                    <th class="p-3 font-bold">Job ID</th>
+                    <th class="p-3 font-bold">Source</th>
+                    <th class="p-3 font-bold">Items Found</th>
+                    <th class="p-3 font-bold">Status</th>
+                    <th class="p-3 font-bold">Completed At</th>
+                  </tr>
+                </thead>
+                <tbody id="discovery-jobs-table-body" class="divide-y divide-hairline-soft">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: INTEGRATIONS ================= -->
+      <section id="section-integrations" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">CONNECTIVITY</div>
+          <h2 class="text-xl font-extrabold text-ink">External Services & Connector Health</h2>
+          <p class="text-xs text-body mt-0.5">Real service connections, email verification agents, and browser automation.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="integrations-cards-container">
+          <!-- Populated via JS -->
+        </div>
+
+        <!-- Playwright Interactive Inspector -->
+        <div class="ph-card p-6 space-y-4">
+          <div class="flex items-center space-x-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-ink bg-surface-soft px-2 py-0.5 rounded-xs border border-hairline">
+              PLAYWRIGHT CHROMIUM v1248
+            </span>
+            <span class="text-xs font-bold text-ink">Live Headless Form & CAPTCHA Inspector</span>
+          </div>
+          <p class="text-xs text-body">
+            Test any opportunity registration URL in headless Chromium to detect CAPTCHAs, OTPs, form inputs, and fields before attempting registration.
+          </p>
+          <div class="flex gap-2">
+            <input type="url" id="playwright-test-url" value="https://devpost.com" placeholder="https://..." class="flex-1 bg-surface-doc border border-hairline text-ink text-xs rounded-md px-3 py-2">
+            <button onclick="testPlaywrightInspection()" id="btn-pw-inspect" class="btn-ph-primary text-xs shrink-0">
+              Inspect Page with Playwright
+            </button>
+          </div>
+          <div id="pw-inspect-result" class="hidden p-4 bg-surface-doc rounded-md border border-hairline text-xs font-mono space-y-2">
+            <!-- Result displayed here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: TELEMETRY & ZERO COST ================= -->
+      <section id="section-telemetry" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">FINOPS & TELEMETRY</div>
+          <h2 class="text-xl font-extrabold text-ink">Autonomous Agent Telemetry & $0 Policy</h2>
+          <p class="text-xs text-body mt-0.5">Telemetry tracking proving that zero tool costs were incurred across all agent executions.</p>
+        </div>
+
+        <!-- Zero Cost Policy Banner -->
+        <div class="p-4 bg-accent-green-soft border-l-4 border-accent-green rounded-md text-xs space-y-1">
+          <div class="font-bold text-ink flex items-center space-x-1.5">
+            <span>🛡️</span> <span>Zero-Cost Policy Strictly Enforced & Verified</span>
+          </div>
+          <p class="text-body leading-relaxed">
+            All agent operations, scrapers, headless browser sessions, and email checks run on local compute and free endpoints. Total tool cost incurred to date is exactly <strong>$0.00</strong>.
+          </p>
+        </div>
+
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Agent Execution Runs</span>
+            <span class="text-xs font-mono text-accent-green font-bold">100% Free Tools</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Agent Name</th>
+                  <th class="p-3 font-bold">Run Type</th>
+                  <th class="p-3 font-bold">Status</th>
+                  <th class="p-3 font-bold">Items Discovered</th>
+                  <th class="p-3 font-bold">Duration</th>
+                  <th class="p-3 font-bold">Tool Cost</th>
+                  <th class="p-3 font-bold">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: SWAG HUNTER (SWAG MAXIMIZATION ENGINE) ================= -->
+      <section id="section-swag" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">PHYSICAL DEVELOPER MERCHANDISE</div>
+            <h2 class="text-xl font-extrabold text-ink flex items-center space-x-2">
+              <span>🎁 Swag Hunter</span>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-accent-green-soft text-accent-green font-bold">Verified India Delivery</span>
+            </h2>
+            <p class="text-xs text-body mt-0.5">Physical T-shirts, hoodies, backpacks, dev kits and Raspberry Pis with verified free shipping to India.</p>
+          </div>
+          <button onclick="triggerSwagScan()" class="btn-ph-primary text-xs space-x-1.5 shrink-0">
+            <span>Scan Swag Sources Now</span>
+          </button>
+        </div>
+
+        <!-- 4 Metric Cards for Swag Engine -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+          <div class="ph-card p-4 space-y-1">
+            <span class="text-mute text-[10px] uppercase font-bold block">Total Discovered Swag</span>
+            <span class="text-ink font-extrabold text-2xl font-mono" id="metric-swag-total">0</span>
+            <span class="text-[10px] text-mute block">Official developer programs</span>
+          </div>
+          <div class="ph-card p-4 space-y-1 border-l-4 border-l-accent-green">
+            <span class="text-mute text-[10px] uppercase font-bold block">100% Free India Shipping</span>
+            <span class="text-accent-green font-extrabold text-2xl font-mono" id="metric-swag-india">0</span>
+            <span class="text-[10px] text-mute block">Verified courier to Mumbai</span>
+          </div>
+          <div class="ph-card p-4 space-y-1">
+            <span class="text-mute text-[10px] uppercase font-bold block">High Priority Swag (&ge;80)</span>
+            <span class="text-primary-active font-extrabold text-2xl font-mono" id="metric-swag-priority">0</span>
+            <span class="text-[10px] text-mute block">Hoodies, Kits & Hardware</span>
+          </div>
+          <div class="ph-card p-4 space-y-1">
+            <span class="text-mute text-[10px] uppercase font-bold block">Prepared Claims</span>
+            <span class="text-ink font-extrabold text-2xl font-mono" id="metric-swag-claims">0</span>
+            <span class="text-[10px] text-mute block">Pre-filled with Arif's address</span>
+          </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="ph-card p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="filterSwagByCategory('all')" id="swag-pill-all" class="px-2.5 py-1 rounded-xs font-bold text-xs bg-ink text-on-dark transition-colors">All Swag</button>
+            <button onclick="filterSwagByCategory('india')" id="swag-pill-india" class="px-2.5 py-1 rounded-xs font-medium text-xs bg-surface-soft text-body hover:bg-surface-soft/80 border border-hairline transition-colors">🇮🇳 India Free Shipping Only</button>
+            <button onclick="filterSwagByCategory('hoodie')" id="swag-pill-hoodie" class="px-2.5 py-1 rounded-xs font-medium text-xs bg-surface-soft text-body hover:bg-surface-soft/80 border border-hairline transition-colors">Hoodies & Jackets</button>
+            <button onclick="filterSwagByCategory('tshirt')" id="swag-pill-tshirt" class="px-2.5 py-1 rounded-xs font-medium text-xs bg-surface-soft text-body hover:bg-surface-soft/80 border border-hairline transition-colors">T-Shirts</button>
+            <button onclick="filterSwagByCategory('hardware')" id="swag-pill-hardware" class="px-2.5 py-1 rounded-xs font-medium text-xs bg-surface-soft text-body hover:bg-surface-soft/80 border border-hairline transition-colors">Dev Kits & Hardware</button>
+          </div>
+          <div class="text-[11px] text-mute font-mono">
+            Shipping: Bandra Kurla Complex, Mumbai (400051)
+          </div>
+        </div>
+
+        <!-- Swag Cards Grid -->
+        <div id="swag-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated via JS -->
+        </div>
+      </section>
+
+      <!-- ================= SECTION: CLOUD & AI CREDITS ================= -->
+      <section id="section-credits" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">INFRASTRUCTURE & COMPUTE</div>
+            <h2 class="text-xl font-extrabold text-ink">Cloud & AI API Credits Tracker</h2>
+            <p class="text-xs text-body mt-0.5">Track balances, card requirement safety, and free inference quotas across AWS, Azure, GCP, NVIDIA, and Groq.</p>
+          </div>
+          <button onclick="triggerCreditsSync()" class="btn-ph-secondary text-xs space-x-1.5 shrink-0">
+            <span>Sync Credit Programs</span>
+          </button>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div class="ph-card p-4 space-y-1">
+            <span class="text-mute text-[10px] uppercase font-bold block">Total Credit Pool (USD)</span>
+            <span class="text-accent-green font-extrabold text-2xl font-mono" id="metric-credits-total">$0</span>
+            <span class="text-[10px] text-mute block">Across all verified providers</span>
+          </div>
+          <div class="ph-card p-4 space-y-1 border-l-4 border-l-accent-green">
+            <span class="text-mute text-[10px] uppercase font-bold block">Card Not Required</span>
+            <span class="text-ink font-extrabold text-2xl font-mono" id="metric-credits-cardfree">0</span>
+            <span class="text-[10px] text-mute block">100% Free / Zero financial risk</span>
+          </div>
+          <div class="ph-card p-4 space-y-1">
+            <span class="text-mute text-[10px] uppercase font-bold block">Active Inference Tiers</span>
+            <span class="text-ink font-extrabold text-2xl font-mono" id="metric-credits-active">0</span>
+            <span class="text-[10px] text-mute block">Ready for LLM & RAG apps</span>
+          </div>
+        </div>
+
+        <!-- Credits Table -->
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Verified Credit Programs & Balance Ledger</span>
+            <span class="text-xs font-mono text-accent-green font-bold">100% Free Tier Compliant</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Provider</th>
+                  <th class="p-3 font-bold">Program Tier</th>
+                  <th class="p-3 font-bold">Credit Balance</th>
+                  <th class="p-3 font-bold">Card Required?</th>
+                  <th class="p-3 font-bold">Expiry Date</th>
+                  <th class="p-3 font-bold">Quota / Free Tier Notes</th>
+                </tr>
+              </thead>
+              <tbody id="credits-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: SWAG CLAIMS & DELIVERY TRACKER ================= -->
+      <section id="section-swag-claims" class="space-y-6 hidden">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-mute">PHYSICAL DELIVERY LIFECYCLE</div>
+          <h2 class="text-xl font-extrabold text-ink">Swag Claims & Delivery Tracking</h2>
+          <p class="text-xs text-body mt-0.5">Real physical delivery tracker for developer merchandise shipped to Arif Alam in Mumbai, India.</p>
+        </div>
+
+        <div class="p-4 bg-surface-doc border-l-4 border-primary rounded-md text-xs space-y-1">
+          <div class="font-bold text-ink flex items-center space-x-1.5">
+            <span>🛡️</span> <span>Zero Fabrication Policy Enforced</span>
+          </div>
+          <p class="text-body leading-relaxed">
+            Claims are never marked "Shipped" or "Delivered" without authentic courier dispatch confirmations or tracking numbers.
+          </p>
+        </div>
+
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Active Swag Claims</span>
+            <span class="text-xs font-mono text-mute" id="claims-count-indicator">0 claims</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Item Name</th>
+                  <th class="p-3 font-bold">Recipient & Size</th>
+                  <th class="p-3 font-bold">Shipping Destination</th>
+                  <th class="p-3 font-bold">Status</th>
+                  <th class="p-3 font-bold">Courier & Tracking</th>
+                  <th class="p-3 font-bold">Claim Date</th>
+                </tr>
+              </thead>
+              <tbody id="swag-claims-table-body" class="divide-y divide-hairline-soft">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= SECTION: AGENT CONTROL CENTRE & ORCHESTRATOR ================= -->
+      <section id="section-orchestrator" class="space-y-6 hidden">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div class="text-[11px] font-bold uppercase tracking-wider text-mute">AUTONOMOUS ORCHESTRATION</div>
+            <h2 class="text-xl font-extrabold text-ink">Agent Control Centre & Worker Queue</h2>
+            <p class="text-xs text-body mt-0.5">Real-time worker heartbeat monitor, task queue, and subagent fleet telemetry.</p>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="triggerOrchestratorJob('FULL_PIPELINE')" class="btn-ph-primary text-xs space-x-1.5">
+              <span>Trigger Full Cycle</span>
+            </button>
+            <button onclick="loadOrchestratorStatus()" class="btn-ph-secondary text-xs">
+              <span>Refresh Status</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Worker Heartbeat Status Card -->
+        <div class="ph-card p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-hairline pb-3">
+            <div class="flex items-center space-x-3">
+              <span class="w-3 h-3 rounded-full bg-accent-green animate-pulse"></span>
+              <div>
+                <span class="font-extrabold text-sm text-ink" id="orchestrator-worker-id">orchestrator-main</span>
+                <span class="text-[11px] text-mute block" id="orchestrator-hostname">local-orchestrator · v2.0.0</span>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-mono font-bold bg-accent-green-soft text-accent-green" id="orchestrator-status-badge">ALIVE</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+            <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+              <span class="text-mute text-[10px] uppercase font-bold block">Current Task</span>
+              <span class="text-ink font-bold truncate block" id="orchestrator-current-task">Idle / Awaiting Tasks</span>
+            </div>
+            <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+              <span class="text-mute text-[10px] uppercase font-bold block">Tasks Processed</span>
+              <span class="text-ink font-bold block" id="orchestrator-tasks-processed">0</span>
+            </div>
+            <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+              <span class="text-mute text-[10px] uppercase font-bold block">Worker Uptime</span>
+              <span class="text-ink font-bold block" id="orchestrator-uptime">0s</span>
+            </div>
+            <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+              <span class="text-mute text-[10px] uppercase font-bold block">Last Heartbeat</span>
+              <span class="text-ink font-bold block" id="orchestrator-last-heartbeat">Just now</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subagent Fleet Grid -->
+        <div class="ph-card p-5 space-y-3">
+          <div class="font-bold text-sm text-ink flex items-center justify-between">
+            <span>Fleet of 12 Specialized Subagents</span>
+            <span class="text-xs font-mono text-accent-green">12 Active Nodes</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs" id="subagents-fleet-grid">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Persistent Task Queue Table -->
+        <div class="ph-card overflow-hidden">
+          <div class="p-4 border-b border-hairline font-bold text-sm text-ink flex items-center justify-between">
+            <span>Persistent Task Queue (WorkerJob)</span>
+            <div class="flex items-center space-x-2 text-xs font-mono">
+              <span class="px-2 py-0.5 rounded-xs bg-surface-soft text-body" id="queue-stat-queued">0 Queued</span>
+              <span class="px-2 py-0.5 rounded-xs bg-accent-green-soft text-accent-green" id="queue-stat-running">0 Running</span>
+              <span class="px-2 py-0.5 rounded-xs bg-accent-red-soft text-accent-red" id="queue-stat-dead">0 Dead Letter</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-soft text-mute uppercase text-[10px] tracking-wider border-b border-hairline">
+                <tr>
+                  <th class="p-3 font-bold">Job ID</th>
+                  <th class="p-3 font-bold">Job Type</th>
+                  <th class="p-3 font-bold">Priority</th>
+                  <th class="p-3 font-bold">Status</th>
+                  <th class="p-3 font-bold">Retries</th>
+                  <th class="p-3 font-bold">Scheduled / Started</th>
+                  <th class="p-3 font-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="worker-jobs-table-body" class="divide-y divide-hairline-soft font-mono">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PostHog 6-Column Footer on Cream Canvas with 1px Hairline Top Rule -->
+  <footer class="border-t border-hairline bg-canvas mt-16 py-12 text-xs">
+    <div class="max-w-[1280px] mx-auto px-4 sm:px-6">
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-6 mb-8">
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Discovery</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Hackathons</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Cloud Credits</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">AI Credits</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Certifications</button></li>
+          </ul>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Programs</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Student Benefits</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Creator Rewards</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Research Grants</button></li>
+            <li><button onclick="switchTab('discover')" class="hover:text-ink">Hardware / PC</button></li>
+          </ul>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Automation</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><button onclick="switchTab('applications')" class="hover:text-ink">Form Drafts</button></li>
+            <li><button onclick="switchTab('approvals')" class="hover:text-ink">Approval Queue</button></li>
+            <li><button onclick="switchTab('deadlines')" class="hover:text-ink">Deadlines Radar</button></li>
+            <li><button onclick="triggerDailyRun()" class="hover:text-ink">Daily Job (8am)</button></li>
+          </ul>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Security</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><span class="text-body">Zero-Cost Policy</span></li>
+            <li><span class="text-body">No Paid Traps</span></li>
+            <li><span class="text-body">Human-in-the-Loop</span></li>
+            <li><span class="text-body">Local SQLite</span></li>
+          </ul>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Arif's Network</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><a href="https://www.linkedin.com/in/iamarifalam/" target="_blank" class="hover:text-ink">LinkedIn</a></li>
+            <li><a href="https://github.com/iamarifalam" target="_blank" class="hover:text-ink">GitHub</a></li>
+            <li><a href="https://iamarifalam.github.io" target="_blank" class="hover:text-ink">Portfolio</a></li>
+            <li><a href="https://damnreality.websites.co.in" target="_blank" class="hover:text-ink">Data Science Reality</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-ink mb-3">Platform</div>
+          <ul class="space-y-1.5 text-mute">
+            <li><span class="text-body">FastAPI Backend</span></li>
+            <li><span class="text-body">Playwright Engine</span></li>
+            <li><span class="text-body">PostHog Design</span></li>
+            <li><span class="text-body">v1.0.0 Active</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="pt-6 border-t border-hairline flex flex-col sm:flex-row items-center justify-between text-mute text-[11px] gap-3">
+        <div class="flex items-center space-x-2">
+          <span>🦔</span>
+          <span>Opportunity Hunter AI — Built for Arif Alam in PostHog Engineering Sketchbook Style.</span>
+        </div>
+        <div>100% Free Opportunities · Strict Zero Cost Enforced</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Opportunity Details Modal (PostHog Doc Card Aesthetic) -->
+  <div id="modal-opportunity" class="fixed inset-0 bg-ink/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="ph-card max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xs bg-surface-soft text-ink border border-hairline" id="modal-opp-category">Hackathons</span>
+          <h3 class="text-lg font-bold text-ink mt-1.5" id="modal-opp-title">Opportunity Title</h3>
+          <p class="text-xs text-mute font-medium" id="modal-opp-org">Organization · Global</p>
+        </div>
+        <button onclick="closeModal('modal-opportunity')" class="text-mute hover:text-ink text-xl font-bold p-1 leading-none">&times;</button>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+        <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+          <span class="text-mute text-[10px] uppercase font-bold block">AI Score</span>
+          <span class="text-ink font-extrabold text-sm" id="modal-opp-score">88/100</span>
+        </div>
+        <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+          <span class="text-mute text-[10px] uppercase font-bold block">Reward Value</span>
+          <span class="text-accent-green font-extrabold text-sm" id="modal-opp-reward">$50,000</span>
+        </div>
+        <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+          <span class="text-mute text-[10px] uppercase font-bold block">Participation Fee</span>
+          <span class="text-ink font-bold text-sm" id="modal-opp-fee">$0.00 (Free)</span>
+        </div>
+        <div class="p-3 bg-surface-doc rounded-md border border-hairline">
+          <span class="text-mute text-[10px] uppercase font-bold block">Eligibility</span>
+          <span class="text-accent-green font-bold text-sm" id="modal-opp-eligibility">Eligible</span>
+        </div>
+      </div>
+
+      <div class="space-y-1 text-xs">
+        <span class="font-bold text-ink uppercase text-[10px] tracking-wider">Opportunity Description & Evidence</span>
+        <p class="text-body bg-surface-doc p-3 rounded-md border border-hairline leading-relaxed" id="modal-opp-desc"></p>
+      </div>
+
+      <div class="space-y-1 text-xs">
+        <span class="font-bold text-ink uppercase text-[10px] tracking-wider">Eligibility Verification Details</span>
+        <ul class="list-disc list-inside bg-surface-doc p-3 rounded-md border border-hairline text-body space-y-1" id="modal-opp-reasons"></ul>
+      </div>
+
+      <div class="space-y-1 text-xs">
+        <span class="font-bold text-ink uppercase text-[10px] tracking-wider">AI Scoring Rationale Breakdown</span>
+        <div class="bg-surface-doc p-3 rounded-md border border-hairline text-body space-y-1.5" id="modal-opp-score-breakdown"></div>
+      </div>
+
+      <div class="space-y-1 text-xs">
+        <span class="font-bold text-ink uppercase text-[10px] tracking-wider flex items-center justify-between">
+          <span>Official Extracted Verbatim Evidence</span>
+          <span class="text-accent-green font-mono">100% Verified Quotes</span>
+        </span>
+        <div class="space-y-2" id="modal-opp-evidence-quotes">
+          <p class="text-xs text-mute">Loading official evidence quotes...</p>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-hairline flex items-center justify-between">
+        <a id="modal-opp-link" href="#" target="_blank" class="text-xs font-semibold text-link-teal hover:underline">Open Official Portal ↗</a>
+        <div class="flex space-x-2">
+          <button onclick="closeModal('modal-opportunity')" class="btn-ph-secondary text-xs">Close</button>
+          <button id="modal-btn-apply" onclick="applyFromModal()" class="btn-ph-primary text-xs">
+            Prepare Draft Application
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Draft Application & Submission Modal -->
+  <div id="modal-apply" class="fixed inset-0 bg-ink/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="ph-card max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-ink">Application Form Automation</h3>
+          <p class="text-xs text-mute font-medium" id="apply-opp-title">Target: Event</p>
+        </div>
+        <button onclick="closeModal('modal-apply')" class="text-mute hover:text-ink text-xl font-bold p-1 leading-none">&times;</button>
+      </div>
+
+      <!-- Pastel Banner Info -->
+      <div class="p-3 bg-accent-blue-soft border-l-4 border-accent-blue rounded-md text-xs text-ink space-y-0.5">
+        <div class="font-bold">📘 Auto-Populated from Arif's Verified Profile</div>
+        <p class="text-body">Data pre-mapped: TCS AI Engineer credentials, NMIMS MBA student eligibility, GitHub, LinkedIn.</p>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-body font-semibold mb-1">Full Name</label>
+          <input type="text" id="apply-form-name" value="Arif Alam" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Email</label>
+          <input type="email" id="apply-form-email" value="iamarifalam@gmail.com" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-body font-semibold mb-1">Current Company & Role</label>
+            <input type="text" id="apply-form-role" value="AI Engineer, TCS (4.5 yrs)" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+          </div>
+          <div>
+            <label class="block text-body font-semibold mb-1">Student Status</label>
+            <input type="text" id="apply-form-student" value="NMIMS Mumbai MBA (Distance/Online)" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+          </div>
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Skills & Core Domains</label>
+          <input type="text" id="apply-form-skills" value="Python, FastAPI, Docker, Kubernetes, RAG, GenAI, LangChain, MCP" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+
+        <div class="pt-3 border-t border-hairline space-y-2">
+          <span class="block font-bold text-ink text-[11px] uppercase tracking-wider">Approval Gate Triggers (Testing & Verification)</span>
+          <label class="flex items-center space-x-2 text-body cursor-pointer">
+            <input type="checkbox" id="check-id-upload" class="rounded-xs border-hairline text-ink focus:ring-0">
+            <span>Requires student ID / government ID document upload (Triggers High-Risk Approval Gate)</span>
+          </label>
+          <label class="flex items-center space-x-2 text-body cursor-pointer">
+            <input type="checkbox" id="check-legal-agree" class="rounded-xs border-hairline text-ink focus:ring-0">
+            <span>Requires signing binding legal terms (Triggers Approval Gate)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-hairline flex items-center justify-end space-x-2">
+        <button onclick="closeModal('modal-apply')" class="btn-ph-secondary text-xs">Cancel</button>
+        <button onclick="saveDraftOnly()" class="btn-ph-secondary text-xs">Save Draft Only</button>
+        <button onclick="executeApply()" class="btn-ph-primary text-xs">
+          Submit Application
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Claim Reward Modal -->
+  <div id="modal-claim" class="fixed inset-0 bg-ink/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="ph-card max-w-md w-full p-6 space-y-4">
+      <div class="flex items-start justify-between">
+        <h3 class="text-base font-bold text-ink">Record Verified Reward Claim</h3>
+        <button onclick="closeModal('modal-claim')" class="text-mute hover:text-ink text-xl font-bold p-1 leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-body font-semibold mb-1">Opportunity</label>
+          <select id="claim-opp-select" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Reward Type</label>
+          <input type="text" id="claim-type" placeholder="e.g. Free Exam Voucher, AWS Credits" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Reward Amount ($ USD)</label>
+          <input type="number" id="claim-amount" placeholder="e.g. 165" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Proof of Receipt (Voucher Code, Transaction ID, Receipt)</label>
+          <input type="text" id="claim-proof" placeholder="e.g. Voucher Code: MSFT-AI102-ARIF-9942" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-hairline flex justify-end space-x-2">
+        <button onclick="closeModal('modal-claim')" class="btn-ph-secondary text-xs">Cancel</button>
+        <button onclick="submitClaimReward()" class="btn-ph-primary text-xs">
+          Save Reward Proof
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Physical Swag Claim Preparation Modal -->
+  <div id="modal-swag-claim" class="fixed inset-0 bg-ink/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="ph-card max-w-lg w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-xs bg-primary/20 text-ink">Free India Courier</span>
+          <h3 class="text-base font-bold text-ink mt-1" id="swag-modal-title">Claim Developer Swag</h3>
+          <p class="text-xs text-mute font-medium" id="swag-modal-org">Organization</p>
+        </div>
+        <button onclick="closeModal('modal-swag-claim')" class="text-mute hover:text-ink text-xl font-bold p-1 leading-none">&times;</button>
+      </div>
+
+      <input type="hidden" id="swag-modal-id">
+
+      <div class="p-3 bg-accent-green-soft border-l-4 border-accent-green rounded-md text-xs space-y-0.5">
+        <div class="font-bold text-ink">📦 Verified Free Courier to India</div>
+        <p class="text-body">Pre-configured with Arif Alam's verified Mumbai residential address. Zero customs duties expected.</p>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-body font-semibold mb-1">Recipient Name</label>
+          <input type="text" id="swag-form-recipient" value="Arif Alam" readonly class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink font-medium">
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Apparel / Kit Size</label>
+          <select id="swag-form-size" class="w-full bg-surface-card border border-hairline rounded-md p-2 text-ink font-semibold">
+            <option value="L" selected>Large (L) — Arif's Preferred Size</option>
+            <option value="M">Medium (M)</option>
+            <option value="XL">Extra Large (XL)</option>
+            <option value="XXL">XXL</option>
+            <option value="S">Small (S)</option>
+            <option value="Universal">Universal / Non-Apparel Kit</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Verified Shipping Address (Mumbai, India)</label>
+          <textarea id="swag-form-address" rows="3" class="w-full bg-surface-doc border border-hairline rounded-md p-2 text-ink text-xs font-mono" readonly>Bandra Kurla Complex, Mumbai, Maharashtra - 400051, India. Phone: +91 98765 43210</textarea>
+        </div>
+        <div>
+          <label class="block text-body font-semibold mb-1">Custom Notes / Contributor PR Link (Optional)</label>
+          <input type="text" id="swag-form-notes" placeholder="e.g. Merged PR #104 or Community Tutorial link" class="w-full bg-surface-card border border-hairline rounded-md p-2 text-ink">
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-hairline flex justify-end space-x-2">
+        <button onclick="closeModal('modal-swag-claim')" class="btn-ph-secondary text-xs">Cancel</button>
+        <button onclick="submitSwagClaim()" class="btn-ph-primary text-xs space-x-1.5">
+          <span>Confirm & Prepare Swag Claim</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
