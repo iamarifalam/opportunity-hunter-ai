@@ -35,10 +35,10 @@ def autofill_ihp_stickers(submit: bool = False) -> dict:
     url = "https://docs.google.com/forms/d/e/1FAIpQLSf7XHkba-mn3GNIsh5n4ftB7hlHmRx9zluicvSKDKU5Z-jJKg/viewform"
     shipping = USER_PROFILE.get("shipping", {})
     recipient = shipping.get("recipient_name") or USER_PROFILE["personal"]["full_name"]
-    street = shipping.get("street", "E-4/43, Shaheed Nagar")
-    city = shipping.get("city", "Agra")
-    state = shipping.get("state", "Uttar Pradesh")
-    pincode = shipping.get("postal_code", "282001")
+    street = shipping.get("street", "F-12/21, Jogabai Extension, Batla House")
+    city = shipping.get("city", "New Delhi")
+    state = shipping.get("state", "Delhi")
+    pincode = shipping.get("postal_code", "110025")
     country = shipping.get("country", "India")
 
     # Strictly follow user privacy rule: omit phone number unless explicitly requested by the form
@@ -190,10 +190,10 @@ async def record_submission_in_database(result: dict):
         )
 
         shipping = USER_PROFILE.get("shipping", {})
-        street = shipping.get("street", "E-4/43, Shaheed Nagar")
-        city = shipping.get("city", "Agra")
-        state = shipping.get("state", "Uttar Pradesh")
-        pincode = shipping.get("postal_code", "282001")
+        street = shipping.get("street", "F-12/21, Jogabai Extension, Batla House")
+        city = shipping.get("city", "New Delhi")
+        state = shipping.get("state", "Delhi")
+        pincode = shipping.get("postal_code", "110025")
         country = shipping.get("country", "India")
         full_addr = f"{street}, {city}, {state} - {pincode}, {country}"
 
@@ -221,15 +221,54 @@ async def record_submission_in_database(result: dict):
         )
         session.add(log)
 
-        # If submitted, create verified Confirmation
+        # If submitted, create verified Opportunity, Application & Confirmation records
         if result["submitted"]:
+            # Ensure Opportunity exists for foreign key constraint
+            opp_res = await session.execute(
+                select(Opportunity).where(Opportunity.name == "IHP Open Source Developer Stickers Kit")
+            )
+            opp = opp_res.scalars().first()
+            if not opp:
+                opp = Opportunity(
+                    name="IHP Open Source Developer Stickers Kit",
+                    organization="Digitally Induced / IHP",
+                    category="Swag",
+                    reward_type="Developer Stickers Pack",
+                    canonical_url=canonical,
+                    official_url=result["form_url"],
+                    status="Applied",
+                    participation_fee=0.0,
+                    verification_status="VERIFIED",
+                )
+                session.add(opp)
+                await session.flush()
+            else:
+                opp.status = "Applied"
+
+            app_res = await session.execute(
+                select(Application).where(Application.opportunity_id == opp.id)
+            )
+            app = app_res.scalars().first()
+            if not app:
+                app = Application(
+                    opportunity_id=opp.id,
+                    application_status="Submitted",
+                    account_used=USER_PROFILE["personal"]["email"],
+                    registration_date=datetime.now(timezone.utc).isoformat(),
+                    registration_confirmation="Google_Forms_Response_Recorded",
+                    confirmation_evidence="Your response has been recorded. Submission proof captured via Playwright.",
+                    notes="IHP Open Source Developer Stickers Kit submitted via Playwright.",
+                )
+                session.add(app)
+                await session.flush()
+
             conf = Confirmation(
-                source_type="Swag",
-                entity_id=swag.id,
+                application_id=app.id,
                 confirmation_type="Google_Forms_Receipt",
-                is_verified=True,
-                verified_at=datetime.now(timezone.utc),
-                evidence_text=f"Confirmed by Google Forms portal on {datetime.now(timezone.utc).isoformat()}. Response recorded.",
+                confirmation_identifier="GoogleForms-IHP-Recorded",
+                verification_status="VERIFIED",
+                raw_evidence=f"Confirmed by Google Forms portal on {datetime.now(timezone.utc).isoformat()}. Response recorded.",
+                received_at=datetime.now(timezone.utc),
             )
             session.add(conf)
 

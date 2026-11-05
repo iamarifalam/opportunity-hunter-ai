@@ -12,8 +12,8 @@ USER_PROFILE: Dict[str, Any] = {
         "email": "iamarifalam@gmail.com",
         "phone": "+91-8954739708",
         "location": {
-            "city": "Agra",
-            "state": "Uttar Pradesh",
+            "city": "New Delhi",
+            "state": "Delhi",
             "country": "India",
             "country_code": "IN",
             "timezone": "Asia/Kolkata",
@@ -135,16 +135,16 @@ USER_PROFILE: Dict[str, Any] = {
     "shipping": {
         "recipient_name": "Arif Alam",
         "phone": "+91-8954739708",
-        "street": "E-4/43, Shaheed Nagar",
-        "city": "Agra",
-        "state": "Uttar Pradesh",
-        "postal_code": "282001",
+        "street": "F-12/21, Jogabai Extension, Batla House",
+        "city": "New Delhi",
+        "state": "Delhi",
+        "postal_code": "110025",
         "country": "India",
         "country_code": "IN",
         "preferred_tshirt_size": "M",
         "waist_size": 32,
         "height": "5'10\"",
-        "swag_preference": "PROPER_SWAG_ONLY",  # Strict filter: Hoodies, T-Shirts, Hardware, Tech Kits. Deprioritize sticker-only items.
+        "swag_preference": "ALL_SWAG_MAXIMIZATION",  # Maximize all rewards: Hoodies, T-Shirts, Dev Kits, Hardware, Stickers & Swag packs!
         "delivery_instructions": "Residential address",
         "privacy_rule": "Avoid providing phone number or address where optional on forms",
     },

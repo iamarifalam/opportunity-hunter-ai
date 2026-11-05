@@ -39,12 +39,12 @@ async def test_swag_hunter_engine(test_db):
     assert first.india_shipping_available is True
     assert first.free_shipping is True
 
-    # Prepare claim with Arif's verified Agra address
+    # Prepare claim with Arif's verified New Delhi address
     claim = await swag_agent.prepare_swag_claim(test_db, first.id, size="M", notes="Test claim")
     assert claim.claim_status == "Claim Form Prepared"
     assert claim.selected_size == "M"
-    assert "Agra" in claim.shipping_address
-    assert "282001" in claim.shipping_address
+    assert "New Delhi" in claim.shipping_address
+    assert "110025" in claim.shipping_address
 
     # Verify zero fabrication guard: cannot mark delivered without tracking/proof
     with pytest.raises(ValueError, match="Cannot mark claim shipped or delivered without a tracking number"):

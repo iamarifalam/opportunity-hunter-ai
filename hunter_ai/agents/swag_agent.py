@@ -280,10 +280,10 @@ class SwagHunterAgent(BaseAgent):
         existing_claim = claim_result.scalars().first()
 
         shipping = USER_PROFILE.get("shipping", {})
-        street = shipping.get("street", "E-4/43, Shaheed Nagar")
-        city = shipping.get("city", "Agra")
-        state = shipping.get("state", "Uttar Pradesh")
-        pincode = shipping.get("postal_code", "282001")
+        street = shipping.get("street", "F-12/21, Jogabai Extension, Batla House")
+        city = shipping.get("city", "New Delhi")
+        state = shipping.get("state", "Delhi")
+        pincode = shipping.get("postal_code", "110025")
         country = shipping.get("country", "India")
         full_address = f"{street}, {city}, {state} - {pincode}, {country}"
 
