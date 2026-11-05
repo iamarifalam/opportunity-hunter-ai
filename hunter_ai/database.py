@@ -52,5 +52,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Initialize database tables with full constraints and indexes."""
+    import hunter_ai.models  # noqa: F401 - Ensure all models are registered in Base.metadata
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

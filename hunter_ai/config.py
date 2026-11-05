@@ -5,6 +5,7 @@ Supports SQLite (local development) and Managed PostgreSQL (Neon, Supabase, AWS 
 
 import os
 from pathlib import Path
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,10 +19,15 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
 
     # Database
-    DATABASE_PATH: Path = BASE_DIR / "hunter_ai.db"
+    # On Vercel serverless, /var/task is read-only; default to /tmp/hunter_ai.db if SQLite
+    DATABASE_PATH: Path = (
+        Path("/tmp/hunter_ai.db")
+        if (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+        else (BASE_DIR / "hunter_ai.db")
+    )
     # Overridable via DATABASE_URL env var (e.g. postgresql+asyncpg://... or postgres://...)
-    DATABASE_URL: str = f"sqlite+aiosqlite:///{DATABASE_PATH}"
-    SYNC_DATABASE_URL: str = f"sqlite:///{DATABASE_PATH}"
+    DATABASE_URL: str = ""
+    SYNC_DATABASE_URL: str = ""
 
     # Vercel & Worker Deployment
     VERCEL: bool = False
@@ -52,9 +58,25 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="allow")
 
+    @model_validator(mode="after")
+    def adjust_for_serverless(self) -> "Settings":
+        is_serverless = bool(
+            os.getenv("VERCEL")
+            or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+            or self.VERCEL
+            or os.getenv("VERCEL_ENV")
+        )
+        if is_serverless:
+            self.VERCEL = True
+            if not self.DATABASE_URL:
+                self.DATABASE_PATH = Path("/tmp/hunter_ai.db")
+        return self
+
     def get_async_db_url(self) -> str:
         """Normalizes DATABASE_URL for async SQLAlchemy drivers."""
         url = self.DATABASE_URL
+        if not url:
+            return f"sqlite+aiosqlite:///{self.DATABASE_PATH}"
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):

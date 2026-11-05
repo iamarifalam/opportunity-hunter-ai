@@ -5,6 +5,7 @@ Provides REST APIs, background scheduler integration, and serves the dashboard U
 
 from contextlib import asynccontextmanager
 from pathlib import Path
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -36,6 +37,8 @@ from hunter_ai.api.routers import (
 from hunter_ai.models import Opportunity
 from hunter_ai.agents.swag_agent import SwagHunterAgent
 from hunter_ai.agents.credits_agent import CloudCreditsAgent
+from hunter_ai.agents.hackathon_agent import HackathonAgent
+from hunter_ai.agents.creator_agent import CreatorAgent
 from sqlalchemy import select
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
@@ -52,9 +55,19 @@ async def lifespan(app: FastAPI):
         res = await session.execute(select(Opportunity).limit(1))
         existing_opp = res.scalars().first()
         if not existing_opp:
-            print("🔍 [Hunter AI] Fresh database detected. Running initial autonomous cycle...")
-            master_orchestrator = OpportunityHunterOrchestrator()
-            await master_orchestrator.run_full_autonomous_cycle(session)
+            print("🔍 [Hunter AI] Fresh database detected. Syncing verified opportunity registries...")
+            swag_agent = SwagHunterAgent()
+            await swag_agent.scan_and_sync_swag(session)
+            cred_agent = CloudCreditsAgent()
+            await cred_agent.sync_credit_programs(session)
+            hack_agent = HackathonAgent()
+            await hack_agent.sync_hackathons(session)
+            creator_agent = CreatorAgent()
+            await creator_agent.sync_creator_opportunities(session)
+
+            if not (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")):
+                master_orchestrator = OpportunityHunterOrchestrator()
+                await master_orchestrator.run_full_autonomous_cycle(session)
         else:
             # Sync verified swag items and credits without blocking on external search APIs
             swag_agent = SwagHunterAgent()
@@ -64,13 +77,15 @@ async def lifespan(app: FastAPI):
 
     print("✅ [Hunter AI] Database tables verified, swag engine & verified opportunities synced.")
 
-    # Start daily background scheduler
-    start_scheduler()
+    # Start daily background scheduler (only in persistent server mode, not ephemeral serverless)
+    if not (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")):
+        start_scheduler()
 
     yield
 
     # Shutdown
-    shutdown_scheduler()
+    if not (os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")):
+        shutdown_scheduler()
     print("🛑 [Hunter AI] Application shutdown completed.")
 
 
