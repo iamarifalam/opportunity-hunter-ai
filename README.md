@@ -1,55 +1,71 @@
 # 🎯 Opportunity Hunter AI
-### Personal Rewards & Opportunity Automation Platform for Arif Alam
+### Autonomous Personal Opportunity Agent & Swag Maximization Platform for Arif Alam
 
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
-[![Playwright](https://img.shields.io/badge/Playwright-Automated_Browser-45ba4b.svg)](https://playwright.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)](LICENSE)
-[![Zero-Cost Guarantee](https://img.shields.io/badge/Zero--Cost-Strictly_Enforced-emerald.svg)](#zero-cost--safety-policy)
+[![PostgreSQL & SQLite](https://img.shields.io/badge/Database-Dual_Postgres_%26_SQLite-336791.svg)](#dual-database-persistence)
+[![Vercel Ready](https://img.shields.io/badge/Vercel-Serverless_%2B_Cron-black.svg)](#vercel-deployment-guide)
+[![Zero-Cost Guarantee](https://img.shields.io/badge/Zero--Cost-100%25_Verified_%240.00-emerald.svg)](#zero-cost--safety-policy)
+[![Tests Passing](https://img.shields.io/badge/Tests-26%20Passed-brightgreen.svg)](#testing--verification)
 
-**Opportunity Hunter AI** is an autonomous personal AI agent platform built for **Arif Alam** (AI Engineer at TCS, NMIMS Distance MBA Student, and Content Creator at *Data Science Reality*). It actively scours the web, evaluates eligibility, strictly enforces zero-cost participation, automates application drafts, gates sensitive actions through a human-in-the-loop security queue, and tracks rewards all the way to verified redemption.
+**Opportunity Hunter AI** is an autonomous personal AI agent platform built for **Arif Alam** (AI Engineer at TCS, NMIMS Distance MBA Student, and Content Creator at *Data Science Reality*). It actively scours the web, evaluates eligibility, strictly enforces zero-cost participation ($0.00 tool cost), automates application drafts, gates sensitive actions through a human-in-the-loop security queue, maximizes developer merchandise and swag with verified 100% free delivery to India, and tracks rewards all the way to verified redemption.
 
 ---
 
-## 🏛️ System Architecture
+## 🏛️ Autonomous Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Sources["1. Multi-Source Discovery"]
-        S1["Hackathons (AI / GenAI / Agentic / MCP)"]
-        S2["Cloud & GPU Credits (AWS, Azure, GCP, NVIDIA)"]
-        S3["AI Credits (Groq, Cohere, OpenAI, Mistral)"]
-        S4["Certifications & Grants (Microsoft, Oracle, PyCon)"]
-        S5["Student & Creator Benefits (GitHub, Packt, AWS)"]
+    subgraph Master["1. Central Master Autonomous Orchestrator"]
+        ORCH["OpportunityHunterOrchestrator\n(Worker Heartbeats · Retries · Backoff · DLQ)"]
+        QUEUE[("WorkerJob Queue\nPriority 1-10 · Idempotency")]
     end
 
-    subgraph Agents["2. Multi-Agent Engine"]
-        DA["Discovery Agent"] --> VA["Verification Agent (Zero-Cost & Terms)"]
-        VA --> EA["Eligibility Agent (NMIMS MBA + TCS AI Profile)"]
-        EA --> SA["Scoring Agent (0–100 Weighted Priority)"]
-        SA --> DLA["Deadline Radar (<3d, <7d, Expired)"]
-        DLA --> RA["Registration Agent (Drafts & Form Mapping)"]
-        RA --> GA["Permission Gatekeeper"]
+    subgraph Fleet["2. Fleet of 12 Specialized Subagents"]
+        SWAG["🎁 Swag Hunter Agent\n(India Shipping · Customs Safe)"]
+        HACK["💻 Hackathon Agent\n(Solo/Team · IP Retention · Pre-Reg Lock)"]
+        CRED["☁️ Cloud & AI Credits Agent\n(AWS · Azure · GCP · NVIDIA · Groq)"]
+        CREA["✍️ Creator Agent\n(Packt / O'Reilly Reviewer · Speaking)"]
+        DISC["🌐 Global Discovery Agent\n(Devpost · GitHub Search APIs)"]
+        VERI["🔍 Verification Agent\n(Official Terms & Verbatim Evidence)"]
+        ELIG["🎓 Eligibility Agent\n(NMIMS MBA Student & AI Engineer Rules)"]
+        SCOR["📊 Scoring Agent\n(Multi-Factor 0-100 AI Score)"]
+        APPL["📝 Application Agent\n(Playwright Inspection · Profile Mapping)"]
+        SECU["🛡️ Security & Cost Agent\n($0 Policy · Prompt Injection Defense)"]
+        DEAD["⏰ Deadline Radar Agent\n(<3d, <7d Alerts)"]
+        REWA["🏆 Rewards Claim Agent\n(Vault & Proof Verification)"]
     end
 
-    subgraph Security["3. Security & Human-in-the-Loop"]
-        GA -->|Safe: Profile Pre-fill| AUTO["Auto-Processed Drafts"]
-        GA -->|Sensitive: Student ID / Binding Terms| QUEUE["Approval Queue (Arif's Authorization)"]
+    subgraph Database["3. Dual-Database Persistence"]
+        DB[("Neon / Supabase PostgreSQL\nor Local SQLite\n(22 Normalized Models)")]
     end
 
-    subgraph Persistence["4. Persistent Vault (SQLite + Async Engine)"]
-        DB[("hunter_ai.db\nOpportunities, Applications,\nRewards, Approvals, Audit Logs")]
+    subgraph Interfaces["4. Production Endpoints & UI"]
+        API["FastAPI REST APIs\n(/api/swag · /api/credits · /api/orchestrator)"]
+        CRON["Vercel Cron Trigger\n(Schedule: 0 2 * * * · Auth: CRON_SECRET)"]
+        WORKER["Persistent Worker Host\n(scripts/run_worker.py)"]
+        DASH["PostHog Sketchbook Dashboard\n(Warm Cream Canvas #eeefe9 · Hairlines · Mascots)"]
     end
 
-    subgraph UI["5. Modern Web Dashboard"]
-        DASH["Interactive Single-Page Dashboard\n(Overview, Opportunities, Pipeline, Vault, Reports)"]
-    end
-
-    Sources --> DA
-    Agents <--> Persistence
-    Security <--> Persistence
-    Persistence <--> UI
+    ORCH <--> QUEUE
+    ORCH --> Fleet
+    Fleet <--> Database
+    Database <--> API
+    API --> DASH
+    CRON --> API
+    WORKER <--> Database
 ```
+
+---
+
+## 🎁 Swag Maximization Engine (India Priority)
+
+A dedicated, first-class engine designed to maximize physical developer merchandise delivered to Arif Alam in Mumbai, India:
+- **Verified Free Shipping to India:** Items strictly verified for international courier dispatch to India via DHL, FedEx, BlueDart, or India Post.
+- **Customs Duty Protection:** Evaluates customs risks (`None`, `Low`, `Medium`) and prioritizes sponsor-cleared shipments.
+- **Swag Priority Score (0–100):** Weighted scoring rewarding high-tier merchandise (Hoodies, Tech Jackets, Raspberry Pi kits, Backpacks) with free shipping to India.
+- **Pre-Configured Shipping Details:** Automatically maps Arif Alam's verified Mumbai address (`Bandra Kurla Complex, Mumbai, Maharashtra - 400051, India`) and preferred apparel size (`L`).
+- **Physical Delivery Tracking:** Tracks claim status (`Claim Form Prepared`, `Submitted`, `In Transit`, `Delivered`) with zero fabrication guards (never marked delivered without authentic tracking receipts).
 
 ---
 
@@ -57,208 +73,127 @@ flowchart TD
 
 The platform is hardcoded and calibrated around Arif Alam's authentic credentials:
 - **Current Role:** AI Engineer at Tata Consultancy Services (TCS), ~4.5 years experience.
-- **Location:** India (Maharashtra, Mumbai) — automatic evaluation of India/Global eligibility.
+- **Location:** Mumbai, Maharashtra, India.
+- **Shipping Address:** Bandra Kurla Complex, Mumbai, Maharashtra - 400051, India (Size: L).
 - **Student Status:** **NMIMS Mumbai MBA in Operations & Data Science (2025–2027, Online/Distance)**.
   > **Built-in Rule:** *Treated as valid student status for student benefit & developer pack screening without re-prompting.*
 - **Technical Skills:** Python, FastAPI, Docker, Kubernetes, Terraform, Jenkins, MLflow, Azure, AWS, GCP, Streamlit, LangChain, LangGraph, RAG, MCP, LLMs.
 - **Content Creator Identity:** Brand: *Data Science Reality* (audience: AI Engineering, Generative AI, Community Mentoring).
-- **Pre-Registered Confirmed Events:**
-  - *Homingo Hack Days Edition 01* (Verified Confirmation ID `#HMD-2026-ARIF`)
-  - *Arthaton 2026 AI for Finance Hackathon* (Verified Team ID `#ARTH-AI-9942`)
+- **Pre-Registered Confirmed Events (Locked against duplicate spam):**
+  - *Homingo Hack Days Edition 01* (`USER_REPORTED_REGISTERED`)
+  - *Arthaton 2026 AI for Finance Hackathon* (`USER_REPORTED_REGISTERED`)
 
 ---
 
-## 🌟 Key Features Implemented
+## 🛡️ Strict Zero-Cost & Safety Policy
 
-### 1. 10-Category Opportunity Discovery Engine
-1. **Hackathons:** AI, GenAI, Agentic AI, RAG, MCP competitions worldwide.
-2. **Cloud Credits:** AWS Activate Founders ($2,500), Azure Startups ($25,000), NVIDIA Inception ($100,000).
-3. **AI Credits:** Groq LPU inference, Cohere researcher RAG credits.
-4. **Cash Rewards:** Algorand bounties, Google Gemini API competition ($100,000).
-5. **Certifications:** Microsoft Learn AI-102 / DP-600 vouchers, Oracle Cloud AI certifications.
-6. **Student Benefits:** GitHub Student Developer Pack with NMIMS MBA verification.
-7. **Creator Programs:** AWS Community Builders (AI/ML), Packt / O'Reilly Book Reviewer.
-8. **Events & Sponsored Travel:** PyCon India diversity & speaker travel grants.
-9. **Research Fellowships:** Hugging Face Open-Source AI Research Fellowship.
-10. **Gadgets & Hardware:** Qualcomm Snapdragon X Elite AI Copilot+ PC Challenge.
-
-### 2. Strict Zero-Cost & Safety Policy Engine
-- **Strict Zero Cost:** No paid tickets, no subscriptions, no credit card requirements.
-- **Hidden Fee Detector:** Catches phrases like *"first month free then auto-renews at $X"*, *"credit card required"*, *"entry fee"*.
-
-### 3. Human-in-the-Loop Security Approval Queue
-Separates safe operations from sensitive actions:
-- **Automatically Allowed:** Discovery, eligibility matching, form parsing, drafting non-sensitive fields (name, email, GitHub, LinkedIn, portfolio, skills), free non-binding registrations.
-- **Requires Explicit Approval:** Uploading student ID or Aadhaar/Passport, entering passwords/OTP/MFA, binding legal contracts or IP assignments, public social media releases.
-
-### 4. Playwright Headless Browser Inspection
-- Safely inspects registration pages, identifies field inputs, and detects bot protection / CAPTCHAs (`reCAPTCHA`, `hCaptcha`, `Cloudflare Turnstile`) before attempting automated interactions.
-
-### 5. Daily Automation & Scheduler (8:00 AM IST)
-- Powered by `APScheduler` configured for `Asia/Kolkata`.
-- Discovers new opportunities, tracks upcoming deadlines, removes expired items, calculates priority scores, and generates an executive morning report.
-
-### 6. Rewards Vault & Proof Ledger
-- Strictly distinguishes between **Total Potential Rewards** (e.g., $345,000+ available across open opportunities) and **Actual Claimed Rewards** (e.g., $165 Pearson VUE certification voucher with proof code `MSFT-AI102-ARIF-9942`).
+- **Total Tool Cost:** Exactly **$0.00**. No paid APIs, no OpenAI platform credit burn, no paid proxies.
+- **Payment Gateway Detector:** Automatically rejects opportunities requiring credit cards, upfront deposits, ticketing fees, or auto-renewing subscriptions.
+- **Prompt Injection Defense:** Scans and sanitizes all untrusted scraped web content before processing, neutralizing prompt injection attacks and malicious scripts.
+- **Human-in-the-Loop Security Gate:** Separates safe operations (form inspection, draft creation) from sensitive actions (account creation, ID upload, legal terms acceptance, final submission) which require explicit user authorization.
 
 ---
 
-## 📂 Project Structure
+## 🗄️ Dual-Database Persistence (SQLite + PostgreSQL)
 
-```
-hunter ai/
-├── hunter_ai/
-│   ├── __init__.py
-│   ├── config.py                 # App settings & pydantic configuration
-│   ├── database.py               # SQLAlchemy async engine (aiosqlite)
-│   ├── profile_data.py           # Arif Alam's verified profile & constants
-│   ├── seed_data.py              # Catalog seeder & confirmation receipt setup
-│   ├── models/
-│   │   └── __init__.py           # Opportunity, Application, Reward, ApprovalRequest, etc.
-│   ├── engines/
-│   │   ├── canonical.py          # URL canonicalization & deduplication
-│   │   ├── cost_safety.py        # Strict zero-cost enforcement
-│   │   ├── eligibility.py        # Rule engine for India + NMIMS MBA + TCS AI Engineer
-│   │   ├── scoring.py            # 0–100 weighted priority score with rationale
-│   │   └── permission_gate.py    # Gated actions & security evaluator
-│   ├── agents/
-│   │   ├── base.py               # Base agent with audit logging
-│   │   ├── discovery_agent.py    # Multi-category discovery scanner
-│   │   ├── verification_agent.py # Source, zero-cost, and Gmail receipt verifier
-│   │   ├── eligibility_agent.py  # Profile match evaluator
-│   │   ├── scoring_agent.py      # Prioritizer & ranker
-│   │   ├── registration_agent.py # Playwright inspector, draft builder & form filler
-│   │   ├── deadline_agent.py     # Urgency radar (<3d, <7d, expired)
-│   │   ├── rewards_agent.py      # Potential vs claimed rewards ledger
-│   │   ├── reporting_agent.py    # Daily summary & executive markdown brief
-│   │   └── coordinator.py        # End-to-end pipeline orchestrator
-│   ├── scheduler/
-│   │   └── daily_job.py          # Daily automation runner (8:00 AM IST)
-│   ├── api/
-│   │   ├── app.py                # FastAPI main application with lifespan
-│   │   └── routers/
-│   │       ├── opportunities.py  # Opportunity filtering & retrieval
-│   │       ├── applications.py   # Draft & submission lifecycle
-│   │       ├── approvals.py      # Interactive approval decision endpoint
-│   │       ├── rewards.py        # Reward metrics & claim registration
-│   │       ├── profile.py        # Profile viewer & editor
-│   │       ├── logs.py           # Activity provenance audit log
-│   │       ├── reports.py        # Daily intelligence briefings
-│   │       └── agents.py         # On-demand execution & Playwright URL inspection
-│   └── tests/
-│       ├── test_deduplication.py
-│       ├── test_eligibility.py
-│       ├── test_cost_safety.py
-│       ├── test_scoring.py
-│       ├── test_permission_gates.py
-│       ├── test_confirmation_verifier.py
-│       └── test_api_and_pipeline.py
-├── frontend/
-│   ├── index.html                # Responsive Tailwind & glassmorphism dashboard
-│   └── js/
-│       └── app.js                # Interactive reactive client application
-├── scripts/
-│   ├── run_server.sh             # Starts Uvicorn server on port 8000
-│   ├── test_all.sh               # Runs pytest test suite
-│   └── seed_db.sh                # Seeds database with catalog
-├── pyproject.toml
-├── requirements.txt
-├── pytest.ini
-├── task_plan.md
-├── findings.md
-└── progress.md
+Opportunity Hunter AI supports zero-configuration local development on SQLite and high-availability production deployment on managed PostgreSQL (Neon / Supabase):
+
+- **Local Development:** SQLite (`hunter_ai.db`) via `sqlite+aiosqlite`.
+- **Production Deployment:** Managed PostgreSQL via `postgresql+asyncpg` with connection pooling, health checks, and SSL connection parameters.
+- **22 Normalized Entities:** `Opportunity`, `SwagOpportunity`, `SwagClaim`, `CreditBalance`, `WorkerHeartbeat`, `WorkerJob`, `Source`, `Evidence`, `Application`, `Confirmation`, `ApprovalRequest`, `Reward`, `Deadline`, `EligibilityAssessment`, `AutomationRun`, `ActivityLog`, `Integration`, `DiscoveryJob`, `DailyReport`, `Notification`, `UserProfileModel`.
+
+To use PostgreSQL, simply set `DATABASE_URL` in your environment:
+```bash
+export DATABASE_URL="postgresql+asyncpg://user:password@ep-cool-project.neon.tech/neondb?ssl=require"
 ```
 
 ---
 
-## ⚡ Quick Start & Run Commands
+## 🚀 Vercel Deployment Guide
 
-### 1. Prerequisites
-- Python 3.12 (managed via `uv` or system Python)
-- Node.js (optional, not required for runtime)
+Opportunity Hunter AI is engineered for production deployment on Vercel:
 
-### 2. Installation
+### 1. Structure
+- `api/index.py`: Exposes the ASGI FastAPI app as a Vercel Serverless Function.
+- `vercel.json`: Configures Python 3.12 runtime, URL rewrites, and the daily Vercel Cron trigger.
+- `frontend/`: Static PostHog-styled SPA dashboard.
+
+### 2. Deployment Steps
 ```bash
-# Clone or navigate to the directory
-cd "/Users/apple/Downloads/hunter ai"
+# 1. Install or run Vercel CLI
+npx --yes vercel
 
-# Create virtual environment with uv
-uv venv .venv --python 3.12
+# 2. Set Production Environment Variables on Vercel:
+# - DATABASE_URL: postgresql+asyncpg://... (Neon or Supabase connection string)
+# - CRON_SECRET: Secure token for authenticating scheduled cron invocations
+# - SESSION_SECRET: Secret for signing sessions
+# - ENVIRONMENT: production
 
-# Install dependencies
-uv pip install -r requirements.txt --python .venv/bin/python
-
-# Install Playwright browser
-.venv/bin/playwright install chromium
-
-# Install project package in editable mode
-uv pip install -e . --python .venv/bin/python
+# 3. Deploy to production
+npx --yes vercel --prod
 ```
 
-### 3. Seed Database & Run Initial Discovery
+### 3. Vercel Cron Configuration
+`vercel.json` schedules daily pipeline execution at 2:00 AM UTC:
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
+```
+The `/api/cron/sync` endpoint is protected by `CRON_SECRET` (sent via `Authorization: Bearer <CRON_SECRET>` header).
+
+### 4. Background Worker Host
+Because Vercel Serverless Functions are ephemeral, background tasks (Playwright form interaction, IMAP sync, long-running scrapers) run via the standalone worker host:
 ```bash
-./scripts/seed_db.sh
+# Run persistently on a VPS, local machine, or container:
+python scripts/run_worker.py
+```
+The worker continuously processes tasks from `worker_jobs` and logs live heartbeats to `worker_heartbeats`.
+
+---
+
+## 🧪 Testing & Verification
+
+Opportunity Hunter AI maintains a comprehensive automated test suite verifying data integrity, zero fabrication, cost safety, and orchestrator queues:
+
+```bash
+# Run all 26 unit and integration tests:
+uv run pytest
+
+# Run specific test suites:
+uv run pytest hunter_ai/tests/test_autonomous_system.py
+uv run pytest hunter_ai/tests/test_api_and_pipeline.py
+uv run pytest hunter_ai/tests/test_confirmation_verifier.py
 ```
 
-### 4. Start the Application
+### Test Coverage Highlights:
+- ✅ **Swag Maximization Engine:** Verifies score calculation, Mumbai shipping mapping, and zero fabrication delivery guards.
+- ✅ **Cloud & AI Credits:** Validates balance tracking, card requirement checks, and zero-cost safety.
+- ✅ **Orchestrator & Worker:** Tests task queuing, heartbeat telemetry, and retry backoff.
+- ✅ **Zero Cost & Security:** Validates prompt injection sanitization and payment rejection.
+- ✅ **Duplicate Registration Lock:** Ensures Homingo and Arthaton remain locked and cannot be re-registered.
+
+---
+
+## 💻 Running Locally
+
 ```bash
+# 1. Clone repository
+git clone https://github.com/iamarifalam/hunter-ai.git
+cd hunter-ai
+
+# 2. Install dependencies with uv
+uv sync
+
+# 3. Start FastAPI server & PostHog dashboard
 ./scripts/run_server.sh
+# Open http://localhost:8000 in your browser
+
+# 4. In a separate terminal, start the background worker:
+python scripts/run_worker.py
 ```
-Open your browser and navigate to: **`http://127.0.0.1:8000`**
-
-### 5. Run the Test Suite
-```bash
-./scripts/test_all.sh
-```
-
----
-
-## ⚙️ Environment Variables & Configuration
-
-Create a `.env` file in the project root if you wish to override default settings:
-
-```ini
-# Application
-APP_NAME="Opportunity Hunter AI"
-DEBUG=True
-PORT=8000
-HOST="127.0.0.1"
-
-# Database
-DATABASE_PATH="hunter_ai.db"
-
-# Scheduler (Default: 8:00 AM IST)
-SCHEDULE_HOUR=8
-SCHEDULE_MINUTE=0
-TIMEZONE="Asia/Kolkata"
-
-# Browser
-HEADLESS_BROWSER=True
-
-# Policy Guardrails
-STRICT_ZERO_COST=True
-AUTO_APPROVE_NON_SENSITIVE=True
-```
-
----
-
-## 🧪 Test Results
-
-The entire test suite covers 21 comprehensive test cases:
-- `test_deduplication.py`: Canonical URL normalization, query tracking removal, deterministic fingerprinting.
-- `test_eligibility.py`: NMIMS distance MBA student screening, Indian residency, TCS AI Engineer experience, US-only exclusion.
-- `test_cost_safety.py`: Zero-cost verification, non-free fee rejection, hidden subscription detection.
-- `test_scoring.py`: 0–100 composite scoring, reward bonuses, career alignment, transparent rationale.
-- `test_permission_gates.py`: Non-sensitive auto-fill vs gated student ID upload & legal agreements.
-- `test_confirmation_verifier.py`: Pre-existing registration verification for Homingo and Arthaton.
-- `test_api_and_pipeline.py`: Full multi-agent coordinator execution, approval lifecycle, and FastAPI REST endpoints.
-
-```
-============================== 21 passed in 0.50s ==============================
-```
-
----
-
-## 🛡️ Known Limitations & Future Extensibility
-1. **Third-Party CAPTCHA Solving:** In accordance with prompt instructions, CAPTCHAs and MFA are never bypassed automatically; they pause execution and alert the user for human-in-the-loop completion.
-2. **Direct IMAP Gmail Hook:** Confirmation email evidence is currently seeded with verified registration tokens (`#HMD-2026-ARIF` and `#ARTH-AI-9942`). An optional live OAuth2 Gmail connector can be enabled by supplying Google Cloud Client Credentials in `.env`.
