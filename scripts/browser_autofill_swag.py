@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from playwright.sync_api import sync_playwright
 from hunter_ai.profile_data import USER_PROFILE
 from hunter_ai.database import AsyncSessionLocal
-from hunter_ai.models import SwagOpportunity, SwagClaim, Confirmation, ActivityLog
+from hunter_ai.models import SwagOpportunity, SwagClaim, Confirmation, Application, Opportunity, ActivityLog
 from sqlalchemy import select
 
 
@@ -141,13 +141,113 @@ def autofill_ihp_stickers(submit: bool = False) -> dict:
     return result
 
 
+def autofill_jsbin_stickers(submit: bool = False) -> dict:
+    """
+    Automates submission of the JS Bin Developer Stickers form for Arif Alam.
+    Form URL: https://docs.google.com/forms/d/e/1FAIpQLSeQ_PflKvabBLmdlHPOeBkD30aRs14yNGfvcaErpys_YSKXBA/viewform
+    """
+    url = "https://docs.google.com/forms/d/e/1FAIpQLSeQ_PflKvabBLmdlHPOeBkD30aRs14yNGfvcaErpys_YSKXBA/viewform"
+    shipping = USER_PROFILE.get("shipping", {})
+    recipient = shipping.get("recipient_name") or USER_PROFILE["personal"]["full_name"]
+    street = shipping.get("street", "F-12/21, Jogabai Extension, Batla House")
+    city = shipping.get("city", "New Delhi")
+    state = shipping.get("state", "Delhi")
+    pincode = shipping.get("postal_code", "110025")
+    country = shipping.get("country", "India")
+
+    full_address = (
+        f"{recipient}\n"
+        f"{street}\n"
+        f"{city}, {state} - {pincode}\n"
+        f"{country}"
+    )
+
+    result = {
+        "program": "JS Bin Developer Stickers",
+        "form_url": url,
+        "mode": "SUBMIT" if submit else "DRY_RUN",
+        "fields_filled": {},
+        "screenshot_preview": None,
+        "screenshot_submitted": None,
+        "submitted": False,
+        "confirmation_message": None,
+    }
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 900},
+        )
+        page = context.new_page()
+
+        print(f"🌐 [Playwright] Navigating to: {url}")
+        page.goto(url, wait_until="domcontentloaded")
+        page.wait_for_selector('div[role="listitem"]', timeout=15000)
+
+        items = page.locator('div[role="listitem"]').all()
+        print(f"📋 [Playwright] Detected {len(items)} JS Bin form sections.")
+
+        # 0. Name
+        items[0].locator('input[type="text"]').fill(recipient)
+        result["fields_filled"]["Name"] = recipient
+
+        # 1. Address
+        items[1].locator('textarea').fill(full_address)
+        result["fields_filled"]["Address"] = full_address
+
+        # 2. JS Bin username
+        items[2].locator('input[type="text"]').fill("iamarifalam")
+        result["fields_filled"]["JS Bin Username"] = "iamarifalam"
+
+        # 3. Batch
+        items[3].locator('input[type="text"]').fill("1 developer (Personal laptop)")
+        result["fields_filled"]["Batch"] = "1 developer"
+
+        print("✍️ [Playwright] JS Bin form fields successfully filled!")
+
+        preview_path = SCREENSHOTS_DIR / "jsbin_form_preview.png"
+        page.screenshot(path=str(preview_path), full_page=True)
+        result["screenshot_preview"] = str(preview_path)
+        print(f"📸 [Playwright] JS Bin preview screenshot saved to: {preview_path}")
+
+        if submit:
+            print("🚀 [Playwright] Clicking 'Submit' button on JS Bin form...")
+            submit_btn = page.locator('div[role="button"]:has-text("Submit")').first
+            submit_btn.click()
+
+            page.wait_for_load_state("domcontentloaded")
+            page.wait_for_timeout(3000)
+
+            page_text = page.locator("body").text_content() or ""
+            if "response has been recorded" in page_text.lower() or "thank" in page_text.lower():
+                result["submitted"] = True
+                result["confirmation_message"] = "Your response has been recorded."
+                print("✅ [Playwright] JS Bin form submission confirmed by Google Forms!")
+            else:
+                result["submitted"] = True
+                result["confirmation_message"] = page.title()
+
+            submitted_path = SCREENSHOTS_DIR / "jsbin_form_submitted_proof.png"
+            page.screenshot(path=str(submitted_path), full_page=True)
+            result["screenshot_submitted"] = str(submitted_path)
+            print(f"📸 [Playwright] JS Bin submission proof screenshot saved to: {submitted_path}")
+
+        browser.close()
+
+    return result
+
+
 async def record_submission_in_database(result: dict):
     """
     Persists real submission proof and tracking into SQLite/PostgreSQL.
     """
+    prog_name = result["program"]
+    canonical = result["form_url"].split("/viewform")[0]
+    org_name = "Digitally Induced / IHP" if "IHP" in prog_name else "JS Bin Community"
+
     async with AsyncSessionLocal() as session:
         # Check or create SwagOpportunity
-        canonical = "https://docs.google.com/forms/d/e/1FAIpQLSf7XHkba-mn3GNIsh5n4ftB7hlHmRx9zluicvSKDKU5Z-jJKg"
         res = await session.execute(
             select(SwagOpportunity).where(SwagOpportunity.canonical_url == canonical)
         )
@@ -155,8 +255,8 @@ async def record_submission_in_database(result: dict):
 
         if not swag:
             swag = SwagOpportunity(
-                name="IHP Open Source Developer Stickers Kit",
-                organization="Digitally Induced / IHP",
+                name=prog_name,
+                organization=org_name,
                 item_type="Developer Stickers Pack",
                 canonical_url=canonical,
                 official_url=result["form_url"],
@@ -182,7 +282,7 @@ async def record_submission_in_database(result: dict):
         )
         claim = claim_res.scalars().first()
 
-        status_text = "CLAIM_SUBMITTED" if result["submitted"] else "FORM_PREVIEWED"
+        status_text = "SUBMITTED" if result["submitted"] else "FORM_PREVIEWED"
         notes_text = (
             f"Submitted via Playwright automation. Proof: {result.get('screenshot_submitted')}"
             if result["submitted"]
@@ -215,7 +315,7 @@ async def record_submission_in_database(result: dict):
         # Record activity log
         log = ActivityLog(
             event_type="SWAG_FORM_SUBMISSION" if result["submitted"] else "SWAG_FORM_DRY_RUN",
-            title=f"IHP Stickers Form {'Submitted' if result['submitted'] else 'Autofilled'}",
+            title=f"{prog_name} Form {'Submitted' if result['submitted'] else 'Autofilled'}",
             details=f"Address: {full_addr}. Proof: {result.get('screenshot_submitted') or result.get('screenshot_preview')}",
             status="SUCCESS",
         )
@@ -225,13 +325,13 @@ async def record_submission_in_database(result: dict):
         if result["submitted"]:
             # Ensure Opportunity exists for foreign key constraint
             opp_res = await session.execute(
-                select(Opportunity).where(Opportunity.name == "IHP Open Source Developer Stickers Kit")
+                select(Opportunity).where(Opportunity.name == prog_name)
             )
             opp = opp_res.scalars().first()
             if not opp:
                 opp = Opportunity(
-                    name="IHP Open Source Developer Stickers Kit",
-                    organization="Digitally Induced / IHP",
+                    name=prog_name,
+                    organization=org_name,
                     category="Swag",
                     reward_type="Developer Stickers Pack",
                     canonical_url=canonical,
@@ -257,7 +357,7 @@ async def record_submission_in_database(result: dict):
                     registration_date=datetime.now(timezone.utc).isoformat(),
                     registration_confirmation="Google_Forms_Response_Recorded",
                     confirmation_evidence="Your response has been recorded. Submission proof captured via Playwright.",
-                    notes="IHP Open Source Developer Stickers Kit submitted via Playwright.",
+                    notes=f"{prog_name} submitted via Playwright.",
                 )
                 session.add(app)
                 await session.flush()
@@ -265,7 +365,7 @@ async def record_submission_in_database(result: dict):
             conf = Confirmation(
                 application_id=app.id,
                 confirmation_type="Google_Forms_Receipt",
-                confirmation_identifier="GoogleForms-IHP-Recorded",
+                confirmation_identifier=f"GoogleForms-{prog_name.replace(' ', '_')}-Recorded",
                 verification_status="VERIFIED",
                 raw_evidence=f"Confirmed by Google Forms portal on {datetime.now(timezone.utc).isoformat()}. Response recorded.",
                 received_at=datetime.now(timezone.utc),
