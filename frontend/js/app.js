@@ -861,9 +861,9 @@ function getEligibilityBadgeClass(status) {
 }
 
 function getApplicationBadgeClass(status) {
-  if (status === "Registered") return "bg-accent-green-soft text-accent-green border border-accent-green/30";
-  if (status === "USER_REPORTED_REGISTERED") return "bg-primary/20 text-charcoal border border-primary/40 font-semibold";
-  if (status === "Submitted") return "bg-accent-blue-soft text-accent-blue border border-accent-blue/30";
+  if (status === "Registered" || status === "Submitted") return "bg-accent-green-soft text-accent-green border border-accent-green/30 font-bold";
+  if (status === "Draft Prepared") return "bg-primary/20 text-charcoal border border-primary/50 font-semibold";
+  if (status === "USER_REPORTED_REGISTERED") return "bg-surface-soft text-charcoal border border-hairline font-semibold";
   if (status === "Approval Pending") return "bg-accent-red-soft text-accent-red border border-accent-red/30";
   if (status === "Draft Saved") return "bg-surface-soft text-ink border border-hairline";
   return "bg-surface-soft text-mute";

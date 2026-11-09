@@ -371,6 +371,7 @@ class OpportunityHunterOrchestrator(BaseAgent):
             "verified_count": len(verified),
             "eligible_count": len([e for e in eligible if e.eligibility_status in ["Eligible", "Likely eligible"]]),
             "forms_submitted": submissions_result.get("total_submitted", 0),
+            "drafts_prepared": submissions_result.get("drafts_prepared", 0),
             "submission_details": submissions_result.get("details", []),
             "deadlines": deadlines,
             "report_date": daily_report.report_date,
