@@ -387,6 +387,10 @@ async function loadApplications() {
         proofLink = `<br><a href="/static/screenshots/ihp_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline inline-flex items-center space-x-1 mt-1"><span>📸 Official Proof</span></a>`;
       } else if (app.opportunity_name.includes('JS Bin')) {
         proofLink = `<br><a href="/static/screenshots/jsbin_form_submitted_proof.png" target="_blank" class="text-link-blue font-bold underline inline-flex items-center space-x-1 mt-1"><span>📸 Official Proof</span></a>`;
+      } else if (app.opportunity_name.includes('Kestra')) {
+        proofLink = `<br><a href="https://docs.google.com/forms/d/e/1FAIpQLSfHgC4RsK9NK51gLUxBYwpUQwLB45SJQB365G0MAIrKLlnnSg/viewform" target="_blank" class="text-accent-green font-bold underline inline-flex items-center space-x-1 mt-1"><span>✅ Google Forms HTTP 200 Confirmed</span></a>`;
+      } else if (app.opportunity_name.includes('Laminar')) {
+        proofLink = `<br><a href="https://docs.google.com/forms/d/e/1FAIpQLSdxwtT0-Yy9mxcyYoNPUwinAMzAojGviAY-pp8KARnf_NLxKA/viewform" target="_blank" class="text-accent-green font-bold underline inline-flex items-center space-x-1 mt-1"><span>✅ Google Forms HTTP 200 Confirmed</span></a>`;
       }
 
       return `

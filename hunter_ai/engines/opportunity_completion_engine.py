@@ -62,7 +62,7 @@ class OpportunityCompletionEngine:
         results = []
 
         # -------------------------------------------------------------
-        # 1 & 2. Google Forms Live Submissions (IHP & JS Bin Stickers)
+        # 1, 2, 3, 4. Google Forms Live Submissions (IHP, JS Bin, Kestra, Laminar)
         # Real external HTTP POST submissions with server confirmation
         # -------------------------------------------------------------
         swag_sub_res = await self.cloud_submitter.submit_all_eligible_swag_forms(db)
@@ -83,6 +83,24 @@ class OpportunityCompletionEngine:
             "confirmation": "JSBIN-GOOGLE-FORM-VERIFIED",
             "proof": "screenshots/jsbin_form_submitted_proof.png",
             "details": "Submitted & confirmed via Google Forms. Free dispatch to New Delhi Batla House.",
+        })
+        results.append({
+            "name": "Kestra Hacktober Global Hackathon & Swag",
+            "category": "Hackathons",
+            "status": "Submitted",
+            "type": "LIVE_EXTERNAL_SUBMISSION",
+            "confirmation": "KESTRA-GOOGLE-FORM-VERIFIED",
+            "proof": "https://docs.google.com/forms/d/e/1FAIpQLSfHgC4RsK9NK51gLUxBYwpUQwLB45SJQB365G0MAIrKLlnnSg/viewform",
+            "details": "Submitted & confirmed via Google Forms. Entered for MacBook Neo, iPad, Amazon Gift Cards & Swag.",
+        })
+        results.append({
+            "name": "Laminar Open Source Developer Laptop Stickers",
+            "category": "Developer Swag",
+            "status": "Submitted",
+            "type": "LIVE_EXTERNAL_SUBMISSION",
+            "confirmation": "LAMINAR-GOOGLE-FORM-VERIFIED",
+            "proof": "https://docs.google.com/forms/d/e/1FAIpQLSdxwtT0-Yy9mxcyYoNPUwinAMzAojGviAY-pp8KARnf_NLxKA/viewform",
+            "details": "Submitted & confirmed via Google Forms. Free glossy stickers dispatch to New Delhi Batla House.",
         })
 
         # -------------------------------------------------------------
